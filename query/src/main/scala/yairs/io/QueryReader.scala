@@ -1,6 +1,7 @@
 package yairs.io
 
 import yairs.model.Query
+import java.io.File
 
 /**
  * Created with IntelliJ IDEA.
@@ -9,5 +10,5 @@ import yairs.model.Query
  * Time: 9:29 PM
  */
 trait QueryReader {
-     def getQueries:List[Query]
+     def getQueries(file: File):List[Query]
 }

@@ -7,6 +7,6 @@ package yairs.model
  * Time: 9:31 PM
  */
 trait Query {
-     val queryId:String
-     val queryString:String
+  val queryId: String
+  val queryString: String
 }

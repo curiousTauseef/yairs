@@ -45,7 +45,7 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Log
 
   def dump(layer: Int) {
     (1 to layer) foreach (_ => print("\t"))
-    if (!isLeaf) println(operator) else println(term + " : ["+ field+"] "+isStop)
+    if (!isLeaf) println(operator) else println(term + " : ["+ field+"] "+ " stop? " +isStop)
   }
 
 }

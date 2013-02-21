@@ -25,8 +25,7 @@ object BooleanQueryReader extends Logging{
 
     val qr = new BooleanQueryReader()
 
-
-//    testQuery(qr)
+    //testQuery(qr)
     testQueries(qr)
     log.debug("Done.")
   }

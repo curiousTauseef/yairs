@@ -10,5 +10,5 @@ import java.io.File
  * Time: 9:29 PM
  */
 trait QueryReader {
-     def getQueries(file: File):List[Query]
+     def getQueries(queryFile: File):List[Query]
 }

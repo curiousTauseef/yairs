@@ -13,7 +13,7 @@ import org.eintr.loglady.Logging
  */
 class BooleanQueryReader extends QueryReader{
   @Override
-  def getQueries(queryFile:File):List[BooleanQuery]  = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1))).toList
+  def getQueries(queryFile:File):List[BooleanQuery] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1))).toList
 
 
   def getQuery(qid:String,queryString:String):BooleanQuery = new BooleanQuery(qid,queryString)
@@ -25,6 +25,13 @@ object BooleanQueryReader extends Logging{
 
     val qr = new BooleanQueryReader()
 
+
+//    testQuery(qr)
+    testQueries(qr)
+    log.debug("Done.")
+  }
+
+  def testQuery(qr:BooleanQueryReader){
     val query0 = qr.getQuery("1","#OR (#AND (viva la vida) coldplay)")
     query0.dump()
 
@@ -36,5 +43,9 @@ object BooleanQueryReader extends Logging{
 
     val query3 = qr.getQuery("4","(viva la vida) coldplay")
     query3.dump()
+  }
+
+  def testQueries(qr:BooleanQueryReader){
+    qr.getQueries(new File("data/queries.txt")).foreach(q => q.dump())
   }
 }

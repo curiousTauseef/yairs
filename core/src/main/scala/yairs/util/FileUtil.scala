@@ -10,7 +10,7 @@ import java.io.File
  * To change this template use File | Settings | File Templates.
  */
 object FileUtil {
-   def getInvertedFile(term:String):File = {
-     new File("data/clueweb09_wikipedia_15p_invLists/"+term+".inv")
-   }
+  def getInvertedFile(term: String): File = {
+    new File("data/clueweb09_wikipedia_15p_invLists/" + term + ".inv")
+  }
 }

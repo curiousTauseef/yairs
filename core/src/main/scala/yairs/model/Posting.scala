@@ -7,7 +7,7 @@ package yairs.model
  * Time: 2:04 AM
  * To change this template use File | Settings | File Templates.
  */
-class Posting(val docId: Int, val tf: Int, val length: Int, val positions: List[Int], val score:Float = 0.0.toFloat) {
+class Posting(val docId: Int, val tf: Int, val length: Int, val positions: List[Int], val score: Float = 0.0.toFloat) {
   val isEmpty = positions.length == 0
 }
 

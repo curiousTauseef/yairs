@@ -19,11 +19,13 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
 
   def parseNode(str: String): QueryTreeNode = {
     if (str.startsWith("#OR")) {
-      new QueryTreeNode("or", stripOuterBrackets(str.stripPrefix("#OR")))
+      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")))
     } else if (str.startsWith("#AND")) {
-      new QueryTreeNode("and", stripOuterBrackets(str.stripPrefix("#AND")))
+      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")))
     } else if (str.startsWith("#NEAR")) {
-      new QueryTreeNode("near", stripOuterBrackets(str.stripPrefix("#NEAR")))
+      val reg = """^(#NEAR/\d+)(.*)""".r
+      val  reg(prefix,suffix) = str
+      new QueryTreeNode(prefix, stripOuterBrackets(suffix))
     } else {
       new QueryTreeNode("", stripOuterBrackets(str))
     }

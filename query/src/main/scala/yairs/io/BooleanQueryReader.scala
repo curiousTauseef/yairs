@@ -25,13 +25,12 @@ object BooleanQueryReader extends Logging{
 
     val qr = new BooleanQueryReader()
 
-
-//    testQuery(qr)
-    testQueries(qr)
+    testQuery(qr)
+    //testQueries(qr)
     log.debug("Done.")
   }
 
-  def testQuery(qr:BooleanQueryReader){
+  private def testQuery(qr:BooleanQueryReader){
     val query0 = qr.getQuery("1","#OR (#AND (viva la vida) coldplay)")
     query0.dump()
 
@@ -43,6 +42,9 @@ object BooleanQueryReader extends Logging{
 
     val query3 = qr.getQuery("4","(viva la vida) coldplay")
     query3.dump()
+
+    val query4 = qr.getQuery("5","(#NEAR/2(viva la) vida) coldplay")
+    query4.dump()
   }
 
   def testQueries(qr:BooleanQueryReader){

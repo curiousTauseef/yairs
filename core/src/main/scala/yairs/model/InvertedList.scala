@@ -19,14 +19,6 @@ class InvertedList(invertFile: File) extends Logging {
     (parts(0), parts(1), parts(2).toInt, parts(3).toInt)
   }
 
-  // Using list buffer is sightly faster
-  //  val postings = lines.slice(1, lines.length).foldLeft(List[(Int, Int, Int, List[Int])]())((workingList, posting) => {
-  //    val parts = posting.trim.split(" ")
-  //    val Array(docId, tf, length) = parts.slice(0, 3).map(str => str.toInt)
-  //    val positions = parts.slice(3, parts.length).map(str => str.toInt).toList
-  //    (docId, tf, length, positions) :: workingList
-  //  }).reverse
-
   private var tempPostings = ListBuffer.empty[(Int, Int, Int, List[Int])]
 
   lines.slice(1, lines.length).foreach(posting => {
@@ -38,10 +30,8 @@ class InvertedList(invertFile: File) extends Logging {
 
   val postings = tempPostings.toList
 
-  log.debug(postings.length.toString)
-
   def dump() {
-    log.info(String.format("Dumping inverted list for [%s], with collection frequencey [%s], total term count[%s]", term, collectionFrequency.toString, totalTermCount.toString))
+    log.info(String.format("Dumping inverted list for [%s], with collection frequency [%s], total term count [%s]", term, collectionFrequency.toString, totalTermCount.toString))
     postings.foreach(posting =>
       println(String.format("[Doc id]: %s , [TF]: %s , [Document Length]: %s , %s positions are omitted", posting._1.toString,posting._2.toString,posting._3.toString,posting._4.length.toString))
     )

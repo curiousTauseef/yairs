@@ -142,9 +142,7 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
           val docId2 = p2.docId
 
           if (docId1 == docId2) {
-            val newPosting = Posting(docId1, math.min(p1.score, p2.score))
-            println(newPosting.docId+" "+newPosting.score)
-            intersectedPostings.append(newPosting)
+            intersectedPostings.append(Posting(docId1, math.min(p1.score, p2.score)))
             if (!(iter1.hasNext && iter2.hasNext)) {
               break
             }
@@ -171,8 +169,8 @@ object BooleanRetriever extends Logging {
 
     val qr = new BooleanQueryReader()
     val br = new BooleanRetriever(true)
-    //testQuerySet(qr, br)
-    testQuery(qr,br)
+    testQuerySet(qr, br)
+    //testQuery(qr,br)
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
@@ -185,7 +183,10 @@ object BooleanRetriever extends Logging {
         log.debug("Really?")
         sys.exit()
       }
-      //results.take(3).foreach(println)
+      println("==================Top 5 results=================")
+      println(TrecLikeResult.header)
+      results.take(5).foreach(println)
+      println("================================================")
     })
   }
 
@@ -194,6 +195,8 @@ object BooleanRetriever extends Logging {
     //val results = br.evaluate(qr.getQuery("1", "#OR arizona states"), "singleQueryTest")
     val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
     log.debug("Number of documents retrieved: " + results.length)
+    println("=================Top 10 results=================")
     results.take(10).foreach(println)
+    println("================================================")
   }
 }

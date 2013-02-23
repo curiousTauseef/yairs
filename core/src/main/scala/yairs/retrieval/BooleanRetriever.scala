@@ -24,25 +24,24 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
 
     evaluateNode(root).sortBy(posting => posting.score).reverse.zipWithIndex.foldLeft(List[Result]()) {
       case (results, (posting, zeroBasedRank)) => {
-        val result = new TrecLikeResult(bQuery.queryId, posting.docId, zeroBasedRank+1, posting.score, runId)
+        val result = new TrecLikeResult(bQuery.queryId, posting.docId, zeroBasedRank + 1, posting.score, runId)
         result :: results
       }
     }.reverse
   }
 
   private def evaluateNode(node: QueryTreeNode): List[Posting] = {
-    //log.debug("Evaluating node:")
-    //node.dump()
     if (node.isLeaf) {
-      InvertedList(FileUtils.getInvertedFile(node.term), ranked).postings
+      InvertedList(FileUtils.getInvertedFile(node.term, node.field), ranked).postings
     }
     else {
+      node.children.foreach(node => node.dump())
       val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
         if (child.isStop)
           lists
         else
           evaluateNode(child) :: lists
-      })
+      }).reverse //ensure evaluation sequences
       mergePostingLists(childLists, node)
     }
   }
@@ -66,14 +65,87 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
     } else if (node.operator == QueryOperator.OR) {
       disjunct(list1, list2)
     } else if (node.operator == QueryOperator.NEAR) {
-      positionIntersect(list1, list2)
+      positionIntersect(list1, list2, node.proximity)
     } else {
       null
     }
   }
 
-  private def positionIntersect(list1: List[Posting], list2: List[Posting]): List[Posting] = {
-    null
+  private def positionIntersect(list1: List[Posting], list2: List[Posting], k: Int): List[Posting] = {
+    val iter1 = list1.iterator
+    val iter2 = list2.iterator
+
+    val intersectedPostings = new ListBuffer[Posting]()
+    if (iter1.hasNext && iter2.hasNext) {
+      var p1 = iter1.next()
+      var p2 = iter2.next()
+
+      breakable {
+        while (true) {
+          val docId1 = p1.docId
+          val docId2 = p2.docId
+
+          if (docId1 == docId2) {
+            val nearMatchesList = getNearMatchedPositions(p1.positions, p2.positions, k)
+            //            if (nearMatchesList.size > 0) {
+            //              log.debug("Near match list for doc %s ".format(docId1))
+            //              nearMatchesList.foreach(println)
+            //            }
+            val matches = nearMatchesList.length
+            if (matches > 0) {
+              val score = if (ranked) matches else 1
+              intersectedPostings.append(Posting(docId1, nearMatchesList.map(_._1), score))
+            }
+            if (!(iter1.hasNext && iter2.hasNext)) {
+              break
+            }
+            p1 = iter1.next()
+            p2 = iter2.next()
+          } else if (docId1 < docId2) {
+            if (!iter1.hasNext) break
+            p1 = iter1.next()
+          } else {
+            if (!iter2.hasNext) break
+            p2 = iter2.next()
+          }
+        }
+      }
+    }
+    intersectedPostings.toList
+  }
+
+  /**
+   * Intersect two positions list, return the positions of the second list
+   * @param positions1
+   * @param positions2
+   * @return
+   */
+  private def getNearMatchedPositions(positions1: List[Int], positions2: List[Int], k: Int): List[(Int, Int)] = {
+    val iter1 = positions1.iterator
+    val iter2 = positions2.iterator
+
+    val results = new ListBuffer[(Int, Int)]()
+
+    if (iter1.hasNext && iter2.hasNext) {
+      var pp1 = iter1.next()
+      var pp2 = iter2.next()
+
+      breakable {
+        while (true) {
+          if (pp2 >= pp1) {
+            if (pp2 - pp1 <= k) {
+              results.append((pp1, pp2))
+            }
+            if (!iter1.hasNext) break
+            pp1 = iter1.next()
+          } else {
+            if (!iter2.hasNext) break
+            pp2 = iter2.next()
+          }
+        }
+      }
+    }
+    results.toList
   }
 
   /**
@@ -96,19 +168,19 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
           val docId1 = p1.docId
           val docId2 = p2.docId
           if (docId1 == docId2) {
-            intersectedPostings.append(Posting(docId1,math.max(p1.score, p2.score)))
+            intersectedPostings.append(Posting(docId1, math.max(p1.score, p2.score)))
             if (!(iter1.hasNext && iter2.hasNext)) break
             p1 = iter1.next()
             p2 = iter2.next()
           } else if (docId1 < docId2) {
-            intersectedPostings.append(Posting(docId1,p1.score))
+            intersectedPostings.append(Posting(docId1, p1.score))
             if (iter1.hasNext) p1 = iter1.next()
             else {
               intersectedPostings.appendAll(iter2)
               break
             }
           } else {
-            intersectedPostings.append(Posting(docId2,p2.score))
+            intersectedPostings.append(Posting(docId2, p2.score))
             if (iter2.hasNext) p2 = iter2.next()
             else {
               intersectedPostings.appendAll(iter1)
@@ -169,8 +241,8 @@ object BooleanRetriever extends Logging {
 
     val qr = new BooleanQueryReader()
     val br = new BooleanRetriever(true)
-    testQuerySet(qr, br)
-    //testQuery(qr,br)
+    //testQuerySet(qr, br)
+    testQuery(qr, br)
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
@@ -193,7 +265,10 @@ object BooleanRetriever extends Logging {
   def testQuery(qr: BooleanQueryReader, br: BooleanRetriever) {
     //val results = br.evaluate(qr.getQuery("1", "#OR obama family"), "singleQueryTest")
     //val results = br.evaluate(qr.getQuery("1", "#OR arizona states"), "singleQueryTest")
-    val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
+    //val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
+    val results = br.evaluate(qr.getQuery("1", "#AND (#NEAR/1 (arizona states) obama)"), "singleQueryTest")
+    //val results = br.evaluate(qr.getQuery("1", "#NEAR/1 (arizona states)"), "singleQueryTest")
+
     log.debug("Number of documents retrieved: " + results.length)
     println("=================Top 10 results=================")
     results.take(10).foreach(println)

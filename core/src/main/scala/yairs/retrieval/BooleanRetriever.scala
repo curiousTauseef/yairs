@@ -35,14 +35,15 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
       InvertedList(FileUtils.getInvertedFile(node.term, node.field), ranked).postings
     }
     else {
-      node.children.foreach(node => node.dump())
+//      node.children.foreach(node => node.dump())
       val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
         if (child.isStop)
           lists
         else
           evaluateNode(child) :: lists
       }).reverse //ensure evaluation sequences
-      mergePostingLists(childLists, node)
+      val optimizedChildLists = if (node.operator == QueryOperator.AND) childLists.sortBy(l=>l.length) else childLists
+      mergePostingLists(optimizedChildLists, node)
     }
   }
 
@@ -87,10 +88,6 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
 
           if (docId1 == docId2) {
             val nearMatchesList = getNearMatchedPositions(p1.positions, p2.positions, k)
-            //            if (nearMatchesList.size > 0) {
-            //              log.debug("Near match list for doc %s ".format(docId1))
-            //              nearMatchesList.foreach(println)
-            //            }
             val matches = nearMatchesList.length
             if (matches > 0) {
               val score = if (ranked) matches else 1
@@ -265,8 +262,8 @@ object BooleanRetriever extends Logging {
   def testQuery(qr: BooleanQueryReader, br: BooleanRetriever) {
     //val results = br.evaluate(qr.getQuery("1", "#OR obama family"), "singleQueryTest")
     //val results = br.evaluate(qr.getQuery("1", "#OR arizona states"), "singleQueryTest")
-    //val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
-    val results = br.evaluate(qr.getQuery("1", "#AND (#NEAR/1 (arizona states) obama)"), "singleQueryTest")
+    val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
+    //val results = br.evaluate(qr.getQuery("1", "#AND (#NEAR/1 (arizona states) obama)"), "singleQueryTest")
     //val results = br.evaluate(qr.getQuery("1", "#NEAR/1 (arizona states)"), "singleQueryTest")
 
     log.debug("Number of documents retrieved: " + results.length)

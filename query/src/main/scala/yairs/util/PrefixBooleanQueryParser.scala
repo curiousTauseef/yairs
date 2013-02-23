@@ -14,7 +14,7 @@ import collection.mutable.ListBuffer
  */
 object PrefixBooleanQueryParser extends QueryParser with Logging {
   private val stopWordDict = Source.fromFile("data/stoplist.txt").getLines().toSet
-  private val defaultOperator = "#OR"
+  private val defaultOperator = "#AND"
 
   def isStop(word:String) = stopWordDict.contains(word.trim)
 

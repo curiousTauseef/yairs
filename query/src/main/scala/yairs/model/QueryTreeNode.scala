@@ -11,7 +11,7 @@ import io.Source
  * Time: 10:36 AM
  */
 class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Logging {
-  private val defaultOperator = QueryOperator.OR
+//  private val defaultOperator = QueryOperator.AND
   private val defaultField = QueryField.BODY
 
   private val queryString = subQuery.trim
@@ -19,7 +19,7 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Log
   val operator = if (queryOperator == "#AND") QueryOperator.AND
   else if (queryOperator.startsWith("#NEAR")) QueryOperator.NEAR
   else if (queryOperator == "#OR") QueryOperator.OR
-  else defaultOperator
+  else throw new IllegalArgumentException("Cannot recognize query operator")
 
   val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else 1
 

@@ -2,7 +2,7 @@ package yairs.retrieval
 
 import yairs.model._
 import yairs.io.BooleanQueryReader
-import java.io.File
+import java.io.{PrintWriter, File}
 import yairs.util.FileUtils
 import org.eintr.loglady.Logging
 import scala.util.control.Breaks._
@@ -35,14 +35,14 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
       InvertedList(FileUtils.getInvertedFile(node.term, node.field), ranked).postings
     }
     else {
-//      node.children.foreach(node => node.dump())
+      //      node.children.foreach(node => node.dump())
       val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
         if (child.isStop)
           lists
         else
           evaluateNode(child) :: lists
       }).reverse //ensure evaluation sequences
-      val optimizedChildLists = if (node.operator == QueryOperator.AND) childLists.sortBy(l=>l.length) else childLists
+      val optimizedChildLists = if (node.operator == QueryOperator.AND) childLists.sortBy(l => l.length) else childLists
       mergePostingLists(optimizedChildLists, node)
     }
   }
@@ -238,13 +238,15 @@ object BooleanRetriever extends Logging {
 
     val qr = new BooleanQueryReader()
     val br = new BooleanRetriever(true)
-    //testQuerySet(qr, br)
-    testQuery(qr, br)
+    testQuerySet(qr, br)
+    //testQuery(qr, br)
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
   def testQuerySet(qr: BooleanQueryReader, br: BooleanRetriever) {
     val queries = qr.getQueries(new File("data/queries.txt"))
+    val writer = new PrintWriter(new File("data/output/testResults.txt"))
+    writer.write(TrecLikeResult.header + "\n")
     queries.foreach(query => {
       val results = br.evaluate(query, "querySetTest")
       log.debug("Number of documents retrieved: " + results.length)
@@ -252,11 +254,13 @@ object BooleanRetriever extends Logging {
         log.debug("Really?")
         sys.exit()
       }
-      println("==================Top 5 results=================")
-      println(TrecLikeResult.header)
-      results.take(5).foreach(println)
-      println("================================================")
+      //      println("==================Top 5 results=================")
+      //      println(TrecLikeResult.header)
+      //      results.take(5).foreach(println)
+      //      println("================================================")
+      results.foreach(r => writer.write(r.toString + "\n"))
     })
+    writer.close()
   }
 
   def testQuery(qr: BooleanQueryReader, br: BooleanRetriever) {

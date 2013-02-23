@@ -20,6 +20,7 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
 
   def parseNode(rawStr: String): QueryTreeNode = {
     val str = rawStr.trim
+    println(str)
     if (str.startsWith("#OR")) {
       new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")))
     } else if (str.startsWith("#AND")) {
@@ -40,7 +41,7 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
 
     var subNodeStrBuffer = ListBuffer.empty[String]
 
-    subQuery.foreach(char =>{
+   subQuery.foreach(char =>{
       if (char == '(') {
         bracketStack.push(char)
       }
@@ -60,7 +61,16 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
     subNodeStrBuffer.toList
   }
 
-  def isOperator(str: String) = (str == "#AND" || str == "#OR" || str == "#NEAR")
+  def isOperator(str: String):Boolean = {
+    if (str == "#AND" || str == "#OR") true
+    else{
+      val reg = """^(#NEAR/\d+)(.*)""".r
+      reg findFirstIn str match{
+        case Some(reg(prefix,suffix)) => suffix == ""
+        case None => false
+      }
+    }
+  }
 
   def stripOuterBrackets(str: String):String = {
     val trimmed = str.trim

@@ -21,7 +21,7 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Log
   else if (queryOperator == "#OR") QueryOperator.OR
   else throw new IllegalArgumentException("Not a supported Boolean operator")
 
-  val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else null
+  val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else 0
 
   private val subStringParts = PrefixBooleanQueryParser.split(queryString)
 

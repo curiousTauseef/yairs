@@ -35,7 +35,7 @@ object InvertedList extends Logging{
     log.info("Done")
   }
 
-  def apply(invertedFile:File, ranked:Boolean = false):InvertedList ={
+  def apply(invertedFile:File, ranked:Boolean = true):InvertedList ={
     val lines = Source.fromFile(invertedFile).getLines().toList
     val (term, stem, collectionFrequency, totalTermCount) = {
       val parts = lines(0).trim.split(" ")
@@ -49,9 +49,9 @@ object InvertedList extends Logging{
       val Array(docId, tf, length) = parts.slice(0, 3).map(str => str.toInt)
       val positions = parts.slice(3, parts.length).map(str => str.toInt).toList
       if (ranked)
-        tempPostings += (new Posting(docId,tf,length,positions))
+        tempPostings += (new Posting(docId,tf,length,positions,tf))
       else
-        tempPostings +=(new Posting(docId,tf,length,positions,tf))
+        tempPostings +=(new Posting(docId,tf,length,positions,1.0))
     })
 
     new InvertedList(term, stem, collectionFrequency, totalTermCount,tempPostings.toList)

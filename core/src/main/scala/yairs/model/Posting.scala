@@ -7,13 +7,12 @@ package yairs.model
  * Time: 2:04 AM
  * To change this template use File | Settings | File Templates.
  */
-class Posting(val docId: Int, val tf: Int, val length: Int, val positions: List[Int], val score: Double = 1.0, val isEmpty :Boolean = false) {
-
+class Posting(val docId: Int, val tf: Int, val length: Int, val positions: List[Int], val score: Double, val isEmpty :Boolean = false) {
 }
 
 object Posting {
-  def apply(docId:Int): Posting ={
-     new Posting(docId,-1,-1,List[Int]())
+  def apply(docId:Int,score:Double): Posting ={
+     new Posting(docId,-1,-1,List[Int](),score)
   }
 
   def empty(): Posting = {

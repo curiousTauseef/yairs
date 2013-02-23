@@ -8,7 +8,7 @@ package yairs.model
  * To change this template use File | Settings | File Templates.
  */
 class TrecLikeResult(val queryID: String, val docID: Int, val rank: Int, val score: Double, val runID: String) extends Result {
-  override def toString = ("%s\tQ0%s\t%s\t%s\t%s").format(queryID, docID, rank.toString, score, runID)
+  override def toString = ("%s\tQ0\t%s\t%s\t%s\t%s").format(queryID, docID, rank.toString, score, runID)
 }
 
 object TrecLikeResult {

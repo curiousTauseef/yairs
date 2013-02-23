@@ -15,16 +15,16 @@ import collection.mutable.ListBuffer
  * Time: 12:56 AM
  * To change this template use File | Settings | File Templates.
  */
-class BooleanRetriever(ranked:Boolean) extends Retriever with Logging {
+class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
   def evaluate(query: Query, runId: String): List[Result] = {
     val bQuery = query.asInstanceOf[BooleanQuery]
     val root = bQuery.queryRoot
     log.debug("Evaluating query:")
     bQuery.dump()
 
-    evaluateNode(root).zipWithIndex.foldLeft(List[Result]()) {
-      case (results, (posting, rank)) => {
-        val result = new TrecLikeResult(bQuery.queryId, posting.docId, rank, posting.score, runId)
+    evaluateNode(root).sortBy(posting => posting.score).reverse.zipWithIndex.foldLeft(List[Result]()) {
+      case (results, (posting, zeroBasedRank)) => {
+        val result = new TrecLikeResult(bQuery.queryId, posting.docId, zeroBasedRank+1, posting.score, runId)
         result :: results
       }
     }.reverse
@@ -34,7 +34,7 @@ class BooleanRetriever(ranked:Boolean) extends Retriever with Logging {
     //log.debug("Evaluating node:")
     //node.dump()
     if (node.isLeaf) {
-      InvertedList(FileUtils.getInvertedFile(node.term),ranked).postings
+      InvertedList(FileUtils.getInvertedFile(node.term), ranked).postings
     }
     else {
       val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
@@ -54,11 +54,11 @@ class BooleanRetriever(ranked:Boolean) extends Retriever with Logging {
         isFirst = false
         currentList
       }
-      else intersectPostingLists(mergingList, currentList, node)
+      else intersect2PostingLists(mergingList, currentList, node)
     })
   }
 
-  private def intersectPostingLists(list1: List[Posting], list2: List[Posting], node: QueryTreeNode): List[Posting] = {
+  private def intersect2PostingLists(list1: List[Posting], list2: List[Posting], node: QueryTreeNode): List[Posting] = {
     if (node.isLeaf) throw new IllegalArgumentException("No intersection to do on leaf node")
 
     if (node.operator == QueryOperator.AND) {
@@ -95,19 +95,25 @@ class BooleanRetriever(ranked:Boolean) extends Retriever with Logging {
         while (true) {
           val docId1 = p1.docId
           val docId2 = p2.docId
-          intersectedPostings.append(Posting(docId1))
           if (docId1 == docId2) {
-            if (!(iter1.hasNext && iter2.hasNext)) {
-              break
-            }
+            intersectedPostings.append(Posting(docId1,math.max(p1.score, p2.score)))
+            if (!(iter1.hasNext && iter2.hasNext)) break
             p1 = iter1.next()
             p2 = iter2.next()
           } else if (docId1 < docId2) {
-            if (!iter1.hasNext) break
-            p1 = iter1.next()
+            intersectedPostings.append(Posting(docId1,p1.score))
+            if (iter1.hasNext) p1 = iter1.next()
+            else {
+              intersectedPostings.appendAll(iter2)
+              break
+            }
           } else {
-            if (!iter2.hasNext) break
-            p2 = iter2.next()
+            intersectedPostings.append(Posting(docId2,p2.score))
+            if (iter2.hasNext) p2 = iter2.next()
+            else {
+              intersectedPostings.appendAll(iter1)
+              break
+            }
           }
         }
       }
@@ -134,8 +140,11 @@ class BooleanRetriever(ranked:Boolean) extends Retriever with Logging {
         while (true) {
           val docId1 = p1.docId
           val docId2 = p2.docId
+
           if (docId1 == docId2) {
-            intersectedPostings.append(Posting(docId1))
+            val newPosting = Posting(docId1, math.min(p1.score, p2.score))
+            println(newPosting.docId+" "+newPosting.score)
+            intersectedPostings.append(newPosting)
             if (!(iter1.hasNext && iter2.hasNext)) {
               break
             }
@@ -161,8 +170,9 @@ object BooleanRetriever extends Logging {
     val start = System.nanoTime
 
     val qr = new BooleanQueryReader()
-    val br = new BooleanRetriever()
-    testQuerySet(qr, br)
+    val br = new BooleanRetriever(true)
+    //testQuerySet(qr, br)
+    testQuery(qr,br)
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
@@ -175,13 +185,15 @@ object BooleanRetriever extends Logging {
         log.debug("Really?")
         sys.exit()
       }
-      //results.foreach(println)
+      //results.take(3).foreach(println)
     })
   }
 
-  def testQuery(qr: BooleanQueryReader, br: BooleanRetriever, query: BooleanQuery) {
-    val results = br.evaluate(qr.getQuery("1", "#OR arizona casino"), "singleQueryTest")
+  def testQuery(qr: BooleanQueryReader, br: BooleanRetriever) {
+    //val results = br.evaluate(qr.getQuery("1", "#OR obama family"), "singleQueryTest")
+    //val results = br.evaluate(qr.getQuery("1", "#OR arizona states"), "singleQueryTest")
+    val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
     log.debug("Number of documents retrieved: " + results.length)
-    //results.foreach(println)
+    results.take(10).foreach(println)
   }
 }

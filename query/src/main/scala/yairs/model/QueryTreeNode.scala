@@ -11,10 +11,10 @@ import io.Source
  * Time: 10:36 AM
  */
 class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Logging {
-  val defaultOperator = QueryOperator.OR
-  val defaultField = QueryField.BODY
+  private val defaultOperator = QueryOperator.OR
+  private val defaultField = QueryField.BODY
 
-  val queryString = subQuery.trim
+  private val queryString = subQuery.trim
 
   val operator = if (queryOperator == "#AND") QueryOperator.AND
   else if (queryOperator.startsWith("#NEAR")) QueryOperator.NEAR

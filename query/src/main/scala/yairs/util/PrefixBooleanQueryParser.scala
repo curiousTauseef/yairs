@@ -14,10 +14,12 @@ import collection.mutable.ListBuffer
  */
 object PrefixBooleanQueryParser extends QueryParser with Logging {
   private val stopWordDict = Source.fromFile("data/stoplist.txt").getLines().toSet
+  private val defaultOperator = "#OR"
 
   def isStop(word:String) = stopWordDict.contains(word.trim)
 
-  def parseNode(str: String): QueryTreeNode = {
+  def parseNode(rawStr: String): QueryTreeNode = {
+    val str = rawStr.trim
     if (str.startsWith("#OR")) {
       new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")))
     } else if (str.startsWith("#AND")) {
@@ -27,7 +29,7 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
       val  reg(prefix,suffix) = str
       new QueryTreeNode(prefix, stripOuterBrackets(suffix))
     } else {
-      new QueryTreeNode("", stripOuterBrackets(str))
+      new QueryTreeNode(defaultOperator, stripOuterBrackets(str))
     }
   }
 
@@ -63,7 +65,7 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
   def stripOuterBrackets(str: String):String = {
     val trimmed = str.trim
     if (trimmed.startsWith("(")&&trimmed.endsWith(")")) {
-      trimmed.stripPrefix("(").stripSuffix(")")
+      stripOuterBrackets(trimmed.stripPrefix("(").stripSuffix(")"))
     }else{
       trimmed
     }

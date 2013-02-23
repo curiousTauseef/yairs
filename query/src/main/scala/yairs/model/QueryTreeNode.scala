@@ -11,14 +11,15 @@ import io.Source
  * Time: 10:36 AM
  */
 class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Logging {
-  val defaultOperator = QueryOperator.AND
+  val defaultOperator = QueryOperator.OR
   val defaultField = "body"
 
   val queryString = subQuery.trim
 
   val operator = if (queryOperator == "#AND") QueryOperator.AND
   else if (queryOperator.startsWith("#NEAR")) QueryOperator.NEAR
-  else defaultOperator
+  else if (queryOperator == "#OR") QueryOperator.OR
+  else throw new IllegalArgumentException("Not a supported Boolean operator")
 
   val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else null
 

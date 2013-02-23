@@ -54,6 +54,9 @@ object BooleanQueryReader extends Logging{
 
     val query7 = qr.getQuery("8","#NEAR/1 arizona states")
     query7.dump()
+
+    val query8 = qr.getQuery("9","arizona+title states+title")
+    query8.dump()
   }
 
   def testQueries(qr:BooleanQueryReader){

@@ -20,7 +20,6 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
 
   def parseNode(rawStr: String): QueryTreeNode = {
     val str = rawStr.trim
-    println(str)
     if (str.startsWith("#OR")) {
       new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")))
     } else if (str.startsWith("#AND")) {

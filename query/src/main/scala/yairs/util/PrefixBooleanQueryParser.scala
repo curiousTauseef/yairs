@@ -55,27 +55,6 @@ object PrefixBooleanQueryParser extends QueryParser with Logging {
       }
     })
     subNodeStrBuffer += strBuffer.toString()
-
-//ListBuffer is more efficient
-//    val subNodeStrs = subQuery.foldLeft(List[String]())((strs, char) => {
-//      if (char == '(') {
-//        bracketStack.push(char)
-//      }
-//      if (char == ')') {
-//        bracketStack.pop()
-//      }
-//
-//      if (char == ' ' && bracketStack.isEmpty && !isOperator(strBuffer.toString().trim)) {
-//        val newStrs = strs ::: List(strBuffer.toString())
-//        strBuffer.clear()
-//        newStrs
-//      }
-//      else{
-//        strBuffer.append(char)
-//        strs
-//      }
-//    }) ::: List(strBuffer.toString())
-
     subNodeStrBuffer.toList
   }
 

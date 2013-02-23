@@ -11,7 +11,7 @@ import io.Source
  * Time: 10:36 AM
  */
 class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Logging {
-  val defaultOperator = QueryOperator.OR
+  val defaultOperator = QueryOperator.AND
   val defaultField = "body"
 
   val queryString = subQuery.trim
@@ -37,13 +37,16 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String) extends Log
     }
   } else (null, null)
 
-  val isStop = if (isLeaf) PrefixBooleanQueryParser.isStop(term) else null
+  val isStop = if (isLeaf) PrefixBooleanQueryParser.isStop(term) else false
 
-  def dump(layer: Int) {
+  private[model] def dump(layer: Int) {
     (1 to layer) foreach (_ => print("\t"))
-    if (!isLeaf) {
-      if (operator == QueryOperator.NEAR) println(operator + " "+ proximity)else println(operator)
-    } else println(term + " : [" + field + "] " + " stop : " + isStop)
+    dump()
   }
 
+  def dump(){
+    if (!isLeaf) {
+      if (operator == QueryOperator.NEAR) println(operator + " "+ proximity)else println(operator)
+    } else println(term + " : [" + field + "] " + " stopword : " + isStop)
+  }
 }

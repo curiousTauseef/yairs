@@ -13,10 +13,17 @@ import collection.mutable.ListBuffer
  */
 case class InvertedList(term:String,stem:String,collectionFrequency:Int,totalTermCount:Int,postings:List[Posting]) extends Logging {
   def dump() {
-    log.info(String.format("Dumping inverted list for [%s], with collection frequencey [%s], total term count[%s]", term, collectionFrequency.toString, totalTermCount.toString))
+    log.info(String.format("Dumping inverted list for [%s], with collection frequency [%s], total term count[%s]", term, collectionFrequency.toString, totalTermCount.toString))
+    var termCount = 0
+    var lineCount = 0
     postings.foreach(posting =>
-      println(String.format("[Doc id]: %s , [TF]: %s , [Document Length]: %s , %s positions are omitted", posting.docId.toString,posting.tf.toString, posting.length.toString,posting.positions.length.toString))
-    )
+    {
+      termCount += posting.tf
+                     lineCount += 1
+      println("[Doc id]: %s , [TF]: %s , [Document Length]: %s , %s positions are omitted".format(posting.docId,posting.tf, posting.length,posting.positions.length))
+    })
+    log.info(String.format("Dumped inverted list for [%s], with collection frequency [%s], total term count[%s]", term, collectionFrequency.toString, totalTermCount.toString))
+    log.info("In this partial inverted list: Term count : [%s], Line count : [%s]".format(termCount,lineCount))
   }
 }
 
@@ -28,7 +35,7 @@ object InvertedList extends Logging{
     log.info("Done")
   }
 
-  def apply(invertedFile:File):InvertedList ={
+  def apply(invertedFile:File, ranked:Boolean = false):InvertedList ={
     val lines = Source.fromFile(invertedFile).getLines().toList
     val (term, stem, collectionFrequency, totalTermCount) = {
       val parts = lines(0).trim.split(" ")
@@ -37,11 +44,14 @@ object InvertedList extends Logging{
 
     var tempPostings = ListBuffer.empty[Posting]
 
-    lines.slice(1, lines.length).foreach(posting => {
-      val parts = posting.trim.split(" ")
+    lines.slice(1, lines.length).foreach(line => {
+      val parts = line.trim.split(" ")
       val Array(docId, tf, length) = parts.slice(0, 3).map(str => str.toInt)
       val positions = parts.slice(3, parts.length).map(str => str.toInt).toList
-      tempPostings += (new Posting(docId,tf,length,positions))
+      if (ranked)
+        tempPostings += (new Posting(docId,tf,length,positions))
+      else
+        tempPostings +=(new Posting(docId,tf,length,positions,tf))
     })
 
     new InvertedList(term, stem, collectionFrequency, totalTermCount,tempPostings.toList)

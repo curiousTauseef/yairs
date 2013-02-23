@@ -9,7 +9,7 @@ import java.io.File
  * Time: 1:26 AM
  * To change this template use File | Settings | File Templates.
  */
-object FileUtil {
+object FileUtils {
   def getInvertedFile(term: String): File = {
     new File("data/clueweb09_wikipedia_15p_invLists/" + term + ".inv")
   }

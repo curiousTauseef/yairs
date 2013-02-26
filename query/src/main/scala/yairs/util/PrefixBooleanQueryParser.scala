@@ -5,6 +5,7 @@ import org.eintr.loglady.Logging
 import collection.mutable
 import io.Source
 import collection.mutable.ListBuffer
+import java.io.File
 
 /**
  * Created with IntelliJ IDEA.
@@ -12,27 +13,27 @@ import collection.mutable.ListBuffer
  * Date: 2/20/13
  * Time: 11:19 AM
  */
-object PrefixBooleanQueryParser extends QueryParser with Logging {
-  private val stopWordDict = Source.fromFile("data/stoplist.txt").getLines().toSet
-  private val defaultOperator = "#AND"
+class PrefixBooleanQueryParser (stopWordFile:File) extends QueryParser with Logging {
+  private val stopWordDict = Source.fromFile(stopWordFile).getLines().toSet
+  //private val defaultOperator = "#AND"
 
   def isStop(word:String) = stopWordDict.contains(word.trim)
 
-  def parseNode(rawStr: String): QueryTreeNode = {
+  def parseQueryString(rawStr: String,defaultOperator: String): QueryTreeNode = {
     val str = rawStr.trim
+//    println(str)
     if (str.startsWith("#OR")) {
-      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")))
+      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")),defaultOperator,this)
     } else if (str.startsWith("#AND")) {
-      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")))
+      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")),defaultOperator,this)
     } else if (str.startsWith("#NEAR")) {
       val reg = """^(#NEAR/\d+)(.*)""".r
       val  reg(prefix,suffix) = str
-      new QueryTreeNode(prefix, stripOuterBrackets(suffix))
+      new QueryTreeNode(prefix, stripOuterBrackets(suffix),defaultOperator,this)
     } else {
-      new QueryTreeNode(defaultOperator, stripOuterBrackets(str))
+      new QueryTreeNode(defaultOperator, stripOuterBrackets(str),defaultOperator,this)
     }
   }
-
 
   def split(subQuery: String): List[String] = {
     val strBuffer = new StringBuilder

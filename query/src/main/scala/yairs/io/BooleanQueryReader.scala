@@ -11,19 +11,18 @@ import org.eintr.loglady.Logging
  * Date: 2/6/13
  * Time: 9:38 PM
  */
-class BooleanQueryReader extends QueryReader{
+class BooleanQueryReader(val defaultOperator:String, stopWordFile:File) extends QueryReader{
   @Override
-  def getQueries(queryFile:File):List[BooleanQuery] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1))).toList
+  def getQueries(queryFile:File):List[BooleanQuery] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1),defaultOperator,stopWordFile)).toList
 
-
-  def getQuery(qid:String,queryString:String):BooleanQuery = new BooleanQuery(qid,queryString)
+  def getQuery(qid:String,queryString:String):BooleanQuery = new BooleanQuery(qid,queryString,defaultOperator,stopWordFile)
 }
 
 object BooleanQueryReader extends Logging{
   def main(args : Array[String]) {
     log.debug("Try some simple queries")
 
-    val qr = new BooleanQueryReader()
+    val qr = new BooleanQueryReader("#OR",new File("data/stoplist.txt"))
 
     testQuery(qr)
     //testQueries(qr)
@@ -57,6 +56,15 @@ object BooleanQueryReader extends Logging{
 
     val query8 = qr.getQuery("9","arizona+title states+title")
     query8.dump()
+
+    val query9 = qr.getQuery("10","#NEAR/4 (poker tournaments)")
+    query9.dump()
+
+    val query10 = qr.getQuery("11","#OR (#NEAR/2 (alexian brothers) hospital)")
+    query10.dump()
+
+    val query11 = qr.getQuery("12","er #NEAR/2 (tv show)")
+    query11.dump()
   }
 
   def testQueries(qr:BooleanQueryReader){

@@ -68,10 +68,23 @@
                         <goals>
                             <goal>compile</goal>
                             <goal>testCompile</goal>
+                            <goal>run</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
+                    <launchers>
+                    <launcher>
+                        <id>boolean</id>
+                        <mainClass>yairs.retrieval.BooleanRetriever</mainClass>
+                        <args>
+                            <arg>../conf/boolean.properties</arg>
+                        </args>
+                        <jvmArgs>
+                            <jvmArg>-Xmx512m</jvmArg>
+                        </jvmArgs>
+                    </launcher>
+                    </launchers>
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>
             </plugin>

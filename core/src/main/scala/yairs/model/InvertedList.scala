@@ -36,25 +36,31 @@ object InvertedList extends Logging{
   }
 
   def apply(invertedFile:File, ranked:Boolean = true):InvertedList ={
-    val lines = Source.fromFile(invertedFile).getLines().toList
-    val (term, stem, collectionFrequency, totalTermCount) = {
-      val parts = lines(0).trim.split(" ")
-      (parts(0), parts(1), parts(2).toInt, parts(3).toInt)
+    if (invertedFile.exists())  {
+
+      val lines = Source.fromFile(invertedFile).getLines().toList
+      val (term, stem, collectionFrequency, totalTermCount) = {
+        val parts = lines(0).trim.split(" ")
+        (parts(0), parts(1), parts(2).toInt, parts(3).toInt)
+      }
+
+      var tempPostings = ListBuffer.empty[Posting]
+
+      lines.slice(1, lines.length).foreach(line => {
+        val parts = line.trim.split(" ")
+        val Array(docId, tf, length) = parts.slice(0, 3).map(str => str.toInt)
+        val positions = parts.slice(3, parts.length).map(str => str.toInt).toList
+        if (ranked)
+          tempPostings += (new Posting(docId,tf,length,positions,tf))
+        else
+          tempPostings +=(new Posting(docId,tf,length,positions,1.0))
+      })
+
+      new InvertedList(term, stem, collectionFrequency, totalTermCount,tempPostings.toList)
+    }else{
+      log.error("This inverted list is not found: "+invertedFile.getCanonicalPath)
+      new InvertedList("","",0,0,List[Posting] ())
     }
-
-    var tempPostings = ListBuffer.empty[Posting]
-
-    lines.slice(1, lines.length).foreach(line => {
-      val parts = line.trim.split(" ")
-      val Array(docId, tf, length) = parts.slice(0, 3).map(str => str.toInt)
-      val positions = parts.slice(3, parts.length).map(str => str.toInt).toList
-      if (ranked)
-        tempPostings += (new Posting(docId,tf,length,positions,tf))
-      else
-        tempPostings +=(new Posting(docId,tf,length,positions,1.0))
-    })
-
-    new InvertedList(term, stem, collectionFrequency, totalTermCount,tempPostings.toList)
   }
 
 

@@ -3,7 +3,7 @@ package yairs.retrieval
 import yairs.model._
 import yairs.io.BooleanQueryReader
 import java.io.{PrintWriter, File}
-import yairs.util.FileUtils
+import yairs.util.{Configuration, FileUtils}
 import org.eintr.loglady.Logging
 import scala.util.control.Breaks._
 import collection.mutable.ListBuffer
@@ -15,7 +15,7 @@ import collection.mutable.ListBuffer
  * Time: 12:56 AM
  * To change this template use File | Settings | File Templates.
  */
-class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
+class BooleanRetriever(val invFileBaseName:String, ranked: Boolean = true) extends Retriever with Logging {
   def evaluate(query: Query, runId: String): List[Result] = {
     val bQuery = query.asInstanceOf[BooleanQuery]
     val root = bQuery.queryRoot
@@ -32,7 +32,7 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
 
   private def evaluateNode(node: QueryTreeNode): List[Posting] = {
     if (node.isLeaf) {
-      InvertedList(FileUtils.getInvertedFile(node.term, node.field), ranked).postings
+      InvertedList(FileUtils.getInvertedFile(invFileBaseName:String, node.term, node.field), ranked).postings
     }
     else {
       //      node.children.foreach(node => node.dump())
@@ -234,25 +234,49 @@ class BooleanRetriever(ranked: Boolean = true) extends Retriever with Logging {
 
 object BooleanRetriever extends Logging {
   def main(args: Array[String]) {
-    val start = System.nanoTime
+    val configurationFileName = args(0)
+    val config = new Configuration(configurationFileName)
 
-    val qr = new BooleanQueryReader()
-    val br = new BooleanRetriever(true)
-    testQuerySet(qr, br)
-    //testQuery(qr, br)
+    val queryFileName = config.get("yairs.query.path")
+    val outputDir = config.get("yairs.output.path")
+    val stopWordFilePath = config.get("yairs.stoplist.path")
+    val invBaseName = config.get("yairs.inv.basename")
+    val runId = config.get("yairs.run.id")
+
+    val start = System.nanoTime
+    val qr = new BooleanQueryReader("#OR",new File(stopWordFilePath))
+    val br = new BooleanRetriever(invBaseName,true)
+    testQuerySet(queryFileName,outputDir,qr, br, runId,15)
+//    testQuery("data/sample-output",qr, br,"97","#NEAR/1 (south africa)")
+//    testQuery("sample-output",qr, br,"101","#OR (obama #NEAR/2 (family tree))")
+//    testQuery("sample-output",qr, br,"102","#OR (espn sports)")
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
-  def testQuerySet(qr: BooleanQueryReader, br: BooleanRetriever) {
-    val queries = qr.getQueries(new File("data/queries.txt"))
-    val writer = new PrintWriter(new File("data/output/testResults.txt"))
+  /**
+   * Method to run a query set
+   * @param queryFilePath     The path to the query file
+   * @param outputDirectory   The output direcotry to store the results
+   * @param qr  QueryReader object
+   * @param br  Boolean Retriever object
+   * @param runId A String used as a run ID
+   * @param k  Number of queries to run
+   */
+  def testQuerySet(queryFilePath:String, outputDirectory:String,qr: BooleanQueryReader, br: BooleanRetriever, runId: String, k:Int) {
+//    val queries = qr.getQueries(new File("data/queries.txt"))
+//    val writer = new PrintWriter(new File("data/sample-output/%s".format(runId)))
+    val queries = qr.getQueries(new File(queryFilePath))
+    val writer = new PrintWriter(new File(outputDirectory+"/%s".format(runId)))
     writer.write(TrecLikeResult.header + "\n")
-    queries.foreach(query => {
-      val results = br.evaluate(query, "querySetTest")
+
+    val queriesToProcess = if (k >0) queries.take(k) else queries
+
+    queriesToProcess.foreach(query => {
+      val results = br.evaluate(query, runId)
       log.debug("Number of documents retrieved: " + results.length)
       if (results.length == 0) {
-        log.debug("Really?")
-        sys.exit()
+        log.error("Really? 0 document retrieved?")
+        //sys.exit()
       }
       //      println("==================Top 5 results=================")
       //      println(TrecLikeResult.header)
@@ -263,13 +287,33 @@ object BooleanRetriever extends Logging {
     writer.close()
   }
 
-  def testQuery(qr: BooleanQueryReader, br: BooleanRetriever) {
+  /**
+   * Test individual query
+   *
+   * @param outputDirectory directory to output the result
+   * @param qr A Query Reader object
+   * @param br A boolean retriever object
+   * @param queryId A string indicating the queryID
+   * @param queryString Query to be run
+   */
+  def testQuery(outputDirectory:String, qr: BooleanQueryReader, br: BooleanRetriever, queryId:String,queryString:String) {
     //val results = br.evaluate(qr.getQuery("1", "#OR obama family"), "singleQueryTest")
     //val results = br.evaluate(qr.getQuery("1", "#OR arizona states"), "singleQueryTest")
-    val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
+//    val results = br.evaluate(qr.getQuery("1", "#AND (#AND (arizona states) obama)"), "singleQueryTest")
     //val results = br.evaluate(qr.getQuery("1", "#AND (#NEAR/1 (arizona states) obama)"), "singleQueryTest")
     //val results = br.evaluate(qr.getQuery("1", "#NEAR/1 (arizona states)"), "singleQueryTest")
 
+
+    //val results = br.evaluate(qr.getQuery(queryId,"#NEAR/2 (family tree)"),runId)
+    //val results = br.evaluate(qr.getQuery(queryId,"#OR (obama #NEAR/2 (family tree))"),runId)
+    //val results = br.evaluate(qr.getQuery(queryId,"#OR (espn sports)"),"run"+queryId)
+    val results = br.evaluate(qr.getQuery(queryId,queryString),"run"+queryId)
+    val writer = new PrintWriter(new File(outputDirectory+"/%s.txt".format("run"+queryId)))
+    writer.write(TrecLikeResult.header+"\n")
+
+    results.foreach(r => writer.write(r.toString + "\n"))
+
+    writer.close()
     log.debug("Number of documents retrieved: " + results.length)
     println("=================Top 10 results=================")
     results.take(10).foreach(println)

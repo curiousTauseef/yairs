@@ -1,1 +1,5 @@
-An Information retrieval system for class project
+Information retrieval system for class project:
+
+Installation:
+1.  Installation is easy with Maven
+2.  Go to the root directory of the project, type the following command

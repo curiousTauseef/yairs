@@ -20,10 +20,12 @@ Installation:
                         </jvmArgs>
   ```
 
-5.  Edit the configuration file, one example was given in conf/boolean.properties
+5.  Edit the configuration file, one example was given in conf/boolean.properties,read the comments there for details
 
 6.  To run the program, go to the "core" directory and use he maven launcher
 
   ```mvn scala:run -Dlauncher="boolean" ```
 
 7.  Alternatively, you can also run the program in your IDE, if under IntelliJ, you can edit the run configuration to pass in the configuration file path
+
+8. You can play around other options by looking at the main class of "core/src/main/scala/retrieval/BooleanRetriever.scala"

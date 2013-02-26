@@ -3,3 +3,12 @@ Information retrieval system for class project:
 Installation:
 1.  Installation is easy with Maven
 2.  Go to the root directory of the project, type the following command
+  mvn clean install
+3.  Maven will resolve all dependencies.
+4.  Edit the following line in core/pom.xml to give the configuration file path as argument
+  
+5.  Edit the configuration file, one example was given in conf/boolean.properties
+
+6.a.  To run the program, go to the "core" directory and use he maven launcher
+  mvn scala:run -Dlauncher="boolean"
+6.b.  Alternatively, you can also run the program in your IDE, if under IntelliJ, you can edit the run configuration to pass in the configuration file path

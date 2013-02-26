@@ -13,25 +13,25 @@ import java.io.File
  * Date: 2/20/13
  * Time: 11:19 AM
  */
-class PrefixBooleanQueryParser (stopWordFile:File) extends QueryParser with Logging {
+class PrefixBooleanQueryParser(stopWordFile: File) extends QueryParser with Logging {
   private val stopWordDict = Source.fromFile(stopWordFile).getLines().toSet
   //private val defaultOperator = "#AND"
 
-  def isStop(word:String) = stopWordDict.contains(word.trim)
+  def isStop(word: String) = stopWordDict.contains(word.trim)
 
-  def parseQueryString(rawStr: String,defaultOperator: String): QueryTreeNode = {
+  def parseQueryString(rawStr: String, defaultOperator: String): QueryTreeNode = {
     val str = rawStr.trim
-//    println(str)
+    //    println(str)
     if (str.startsWith("#OR")) {
-      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")),defaultOperator,this)
+      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")), defaultOperator, this)
     } else if (str.startsWith("#AND")) {
-      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")),defaultOperator,this)
+      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")), defaultOperator, this)
     } else if (str.startsWith("#NEAR")) {
       val reg = """^(#NEAR/\d+)(.*)""".r
-      val  reg(prefix,suffix) = str
-      new QueryTreeNode(prefix, stripOuterBrackets(suffix),defaultOperator,this)
+      val reg(prefix, suffix) = str
+      new QueryTreeNode(prefix, stripOuterBrackets(suffix), defaultOperator, this)
     } else {
-      new QueryTreeNode(defaultOperator, stripOuterBrackets(str),defaultOperator,this)
+      new QueryTreeNode(defaultOperator, stripOuterBrackets(str), defaultOperator, this)
     }
   }
 
@@ -41,7 +41,7 @@ class PrefixBooleanQueryParser (stopWordFile:File) extends QueryParser with Logg
 
     var subNodeStrBuffer = ListBuffer.empty[String]
 
-   subQuery.foreach(char =>{
+    subQuery.foreach(char => {
       if (char == '(') {
         bracketStack.push(char)
       }
@@ -49,11 +49,11 @@ class PrefixBooleanQueryParser (stopWordFile:File) extends QueryParser with Logg
         bracketStack.pop()
       }
 
-      if (char == ' ' && bracketStack.isEmpty && !isOperator(strBuffer.toString().trim)) {
+      if ((char == ' ' || char == '-') && bracketStack.isEmpty && !isOperator(strBuffer.toString().trim)) {
         subNodeStrBuffer += strBuffer.toString()
         strBuffer.clear()
       }
-      else{
+      else {
         strBuffer.append(char)
       }
     })
@@ -61,22 +61,22 @@ class PrefixBooleanQueryParser (stopWordFile:File) extends QueryParser with Logg
     subNodeStrBuffer.toList
   }
 
-  def isOperator(str: String):Boolean = {
+  def isOperator(str: String): Boolean = {
     if (str == "#AND" || str == "#OR") true
-    else{
+    else {
       val reg = """^(#NEAR/\d+)(.*)""".r
-      reg findFirstIn str match{
-        case Some(reg(prefix,suffix)) => suffix == ""
+      reg findFirstIn str match {
+        case Some(reg(prefix, suffix)) => suffix == ""
         case None => false
       }
     }
   }
 
-  def stripOuterBrackets(str: String):String = {
+  def stripOuterBrackets(str: String): String = {
     val trimmed = str.trim
-    if (trimmed.startsWith("(")&&trimmed.endsWith(")")) {
+    if (trimmed.startsWith("(") && trimmed.endsWith(")")) {
       stripOuterBrackets(trimmed.stripPrefix("(").stripSuffix(")"))
-    }else{
+    } else {
       trimmed
     }
   }

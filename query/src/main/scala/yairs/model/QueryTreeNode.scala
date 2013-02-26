@@ -2,7 +2,6 @@ package yairs.model
 
 import yairs.util.PrefixBooleanQueryParser
 import org.eintr.loglady.Logging
-import io.Source
 
 /**
  * Created with IntelliJ IDEA.
@@ -10,8 +9,8 @@ import io.Source
  * Date: 2/20/13
  * Time: 10:36 AM
  */
-class QueryTreeNode(val queryOperator: String, val subQuery: String, defaultOperator: String,val queryPaser: PrefixBooleanQueryParser) extends Logging {
-//  private val defaultOperator = QueryOperator.AND
+class QueryTreeNode(val queryOperator: String, val subQuery: String, defaultOperator: String, val queryPaser: PrefixBooleanQueryParser) extends Logging {
+  //  private val defaultOperator = QueryOperator.AND
   private val defaultField = QueryField.BODY
 
   private val queryString = subQuery.trim
@@ -23,12 +22,19 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String, defaultOper
 
   val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else 1
 
-  private val subStringParts = queryPaser.split(queryString)
+  private val subStringParts = queryPaser.split(queryString).filterNot(token => containsNoLetter(token))
+
+  def containsNoLetter(str: String): Boolean = {
+    str.foreach(ch => {
+      if (ch.isLetter) return false
+    })
+    true
+  }
 
   //the lower fields only make sense when it is a leaf
   val isLeaf = subStringParts.length == 1
 
-  val children = if (isLeaf) null else subStringParts.map(part => queryPaser.parseQueryString(part,defaultOperator))
+  val children = if (isLeaf) null else subStringParts.map(part => queryPaser.parseQueryString(part, defaultOperator))
 
   val (term, field) = if (isLeaf) {
     val parts = queryString.split('+')
@@ -39,7 +45,7 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String, defaultOper
     } else {
       (parts(0), defaultField)
     }
-  }else ("",defaultField)
+  } else ("", defaultField)
 
   val isStop = if (isLeaf) queryPaser.isStop(term) else false
 
@@ -48,9 +54,9 @@ class QueryTreeNode(val queryOperator: String, val subQuery: String, defaultOper
     dump()
   }
 
-  def dump(){
+  def dump() {
     if (!isLeaf) {
-      if (operator == QueryOperator.NEAR) println(operator + " "+ proximity)else println(operator)
+      if (operator == QueryOperator.NEAR) println(operator + " " + proximity) else println(operator)
     } else println(term + " : [" + field + "] " + " stopword : " + isStop)
   }
 }

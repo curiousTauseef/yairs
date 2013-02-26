@@ -250,16 +250,17 @@ object BooleanRetriever extends Logging {
 
     val start = System.nanoTime
     //***change the following operator to set the default Query Operator used
-    val qr = new BooleanQueryReader("#AND", new File(stopWordFilePath))
+    val qr = new BooleanQueryReader("#OR", new File(stopWordFilePath))
     //***Change the folloiwng boolean to set "ranked" to true or false
-    val br = new BooleanRetriever(invBaseName, false)
-    //*** Set the last interger parameter to above zero will restrict number of queries to be ran
-    testQuerySet(queryFileName, outputDir, qr, br, runId, -1)
+    val br = new BooleanRetriever(invBaseName, true)
+    //*** Set the last interger parameter to above zero will restrict number of results returned
+    testQuerySet(queryFileName, outputDir, qr, br, runId,100)
 
     //***uncomment the following queries to see individual queries
-    //    testQuery("data/sample-output",qr, br,"97","#NEAR/1 (south africa)")
-    //    testQuery("sample-output",qr, br,"101","#OR (obama #NEAR/2 (family tree))")
-    //    testQuery("sample-output",qr, br,"102","#OR (espn sports)")
+//        testQuery("data/sample-output",qr, br,"97","#NEAR/1 (south africa)",100)
+//        testQuery("data/sample-output",qr, br,"100","#NEAR/2 (family tree)",100)
+//        testQuery("data/sample-output",qr, br,"101","#OR (obama #NEAR/2 (family tree))",100)
+//        testQuery("data/sample-output",qr, br,"102","#OR (espn sports)",100)
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
@@ -270,17 +271,16 @@ object BooleanRetriever extends Logging {
    * @param qr  QueryReader object
    * @param br  Boolean Retriever object
    * @param runId A String used as a run ID
-   * @param k  Number of queries to run
+   * @param numResultsToOutput  Number of results to output
    */
-  def testQuerySet(queryFilePath: String, outputDirectory: String, qr: BooleanQueryReader, br: BooleanRetriever, runId: String, k: Int) {
+  def testQuerySet(queryFilePath: String, outputDirectory: String, qr: BooleanQueryReader, br: BooleanRetriever, runId: String,  numResultsToOutput:Int) {
     val queries = qr.getQueries(new File(queryFilePath))
     val writer = new PrintWriter(new File(outputDirectory + "/%s".format(runId)))
     writer.write(TrecLikeResult.header + "\n")
 
-    val queriesToProcess = if (k > 0) queries.take(k) else queries
-
-    queriesToProcess.foreach(query => {
+    queries.foreach(query => {
       val results = br.evaluate(query, runId)
+      val resultsToOutput = if (numResultsToOutput > 0) results.take(numResultsToOutput) else results
       log.debug("Number of documents retrieved: " + results.length)
       if (results.length == 0) {
         log.error("Really? 0 document retrieved?")
@@ -289,7 +289,7 @@ object BooleanRetriever extends Logging {
       //      println(TrecLikeResult.header)
       //      results.take(5).foreach(println)
       //      println("================================================")
-      results.foreach(r => writer.write(r.toString + "\n"))
+      resultsToOutput.foreach(r => writer.write(r.toString + "\n"))
     })
     writer.close()
   }
@@ -302,13 +302,15 @@ object BooleanRetriever extends Logging {
    * @param br A boolean retriever object
    * @param queryId A string indicating the queryID
    * @param queryString Query to be run
+   * @param k top k results returned
    */
-  def testQuery(outputDirectory: String, qr: BooleanQueryReader, br: BooleanRetriever, queryId: String, queryString: String) {
+  def testQuery(outputDirectory: String, qr: BooleanQueryReader, br: BooleanRetriever, queryId: String, queryString: String, k: Int) {
     val results = br.evaluate(qr.getQuery(queryId, queryString), "run" + queryId)
     val writer = new PrintWriter(new File(outputDirectory + "/%s.txt".format("run" + queryId)))
     writer.write(TrecLikeResult.header + "\n")
 
-    results.foreach(r => writer.write(r.toString + "\n"))
+    val resultsToOutput = if (k>0) results.take(k) else results
+    results.foreach(r=> writer.write(r.toString + "\n"))
 
     writer.close()
     log.debug("Number of documents retrieved: " + results.length)

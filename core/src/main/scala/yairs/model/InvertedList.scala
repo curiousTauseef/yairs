@@ -28,9 +28,14 @@ case class InvertedList(term:String,stem:String,collectionFrequency:Int,totalTer
 }
 
 object InvertedList extends Logging{
+
+  /**
+   * This main class is just to test whether reading is successful
+   * @param args
+   */
   def main(args: Array[String]) {
     log.info("Test Inverted List reading!")
-    val ilr = InvertedList(new File("data/clueweb09_wikipedia_15p_invLists/africa.inv"))
+    val ilr = InvertedList(new File("data/exp1/clueweb09_wikipedia_15p_invLists/africa.inv"))
     ilr.dump()
     log.info("Done")
   }

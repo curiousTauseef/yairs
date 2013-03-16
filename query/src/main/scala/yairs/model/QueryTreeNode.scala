@@ -10,7 +10,6 @@ import org.eintr.loglady.Logging
  * Time: 10:36 AM
  */
 class QueryTreeNode(val queryOperator: String, val subQuery: String, defaultOperator: String, val queryPaser: PrefixBooleanQueryParser) extends Logging {
-  //  private val defaultOperator = QueryOperator.AND
   private val defaultField = QueryField.BODY
 
   private val queryString = subQuery.trim

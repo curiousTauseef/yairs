@@ -17,17 +17,19 @@ import collection.mutable.ListBuffer
  */
 class BooleanRetriever(val invFileBaseName: String, ranked: Boolean = true) extends Retriever with Logging {
   def evaluate(query: Query, runId: String): List[Result] = {
-    val bQuery = query.asInstanceOf[BooleanQuery]
+    val bQuery = query.asInstanceOf[BooleanQuery] //a little bit ugly, huh?
     val root = bQuery.queryRoot
     log.debug("Evaluating query:")
     bQuery.dump()
 
-    evaluateNode(root).sortBy(posting => posting.score).reverse.zipWithIndex.foldLeft(List[Result]()) {
+    val evalResults = if (ranked) evaluateNode(root).sortBy(posting => posting.score) else evaluateNode(root).sortBy(posting => posting.docId)
+
+    evalResults.zipWithIndex.foldLeft(List[Result]()) {
       case (results, (posting, zeroBasedRank)) => {
         val result = new TrecLikeResult(bQuery.queryId, posting.docId, zeroBasedRank + 1, posting.score, runId)
         result :: results
       }
-    }.reverse
+    }
   }
 
   private def evaluateNode(node: QueryTreeNode): List[Posting] = {
@@ -35,7 +37,6 @@ class BooleanRetriever(val invFileBaseName: String, ranked: Boolean = true) exte
       InvertedList(FileUtils.getInvertedFile(invFileBaseName: String, node.term, node.field), ranked).postings
     }
     else {
-      //      node.children.foreach(node => node.dump())
       val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
         if (child.isStop)
           lists
@@ -155,39 +156,7 @@ class BooleanRetriever(val invFileBaseName: String, ranked: Boolean = true) exte
     val iter1 = list1.iterator
     val iter2 = list2.iterator
 
-    val intersectedPostings = new ListBuffer[Posting]()
-    if (iter1.hasNext && iter2.hasNext) {
-      var p1 = iter1.next()
-      var p2 = iter2.next()
-
-      breakable {
-        while (true) {
-          val docId1 = p1.docId
-          val docId2 = p2.docId
-          if (docId1 == docId2) {
-            intersectedPostings.append(Posting(docId1, math.max(p1.score, p2.score)))
-            if (!(iter1.hasNext && iter2.hasNext)) break
-            p1 = iter1.next()
-            p2 = iter2.next()
-          } else if (docId1 < docId2) {
-            intersectedPostings.append(Posting(docId1, p1.score))
-            if (iter1.hasNext) p1 = iter1.next()
-            else {
-              intersectedPostings.appendAll(iter2)
-              break
-            }
-          } else {
-            intersectedPostings.append(Posting(docId2, p2.score))
-            if (iter2.hasNext) p2 = iter2.next()
-            else {
-              intersectedPostings.appendAll(iter1)
-              break
-            }
-          }
-        }
-      }
-    }
-    intersectedPostings.toList
+    list1 ::: list2
   }
 
   /**
@@ -241,26 +210,32 @@ object BooleanRetriever extends Logging {
     val configurationFileName = args(0)
     val config = new Configuration(configurationFileName)
 
+    runBoolean(config)
+  }
+
+  def runBoolean(config:Configuration){
     //***edit the configuration file to change the following value
     val queryFileName = config.get("yairs.query.path")
     val outputDir = config.get("yairs.output.path")
     val stopWordFilePath = config.get("yairs.stoplist.path")
     val invBaseName = config.get("yairs.inv.basename")
     val runId = config.get("yairs.run.id")
+    val isRankStr = config.get("yairs.boolean.ranked")
+    val isRanked = if (isRankStr == "true") true else false
+    val defaultOperator = config.getDefaultOperator("yaris.boolean.operator.default")
+    val numResults = config.getInt("yairs.run.results.num")
 
     val start = System.nanoTime
-    //***change the following operator to set the default Query Operator used
-    val qr = new BooleanQueryReader("#OR", new File(stopWordFilePath))
-    //***Change the folloiwng boolean to set "ranked" to true or false
-    val br = new BooleanRetriever(invBaseName, true)
-    //*** Set the last interger parameter to above zero will restrict number of results returned
-    testQuerySet(queryFileName, outputDir, qr, br, runId,100)
+    val qr = new BooleanQueryReader(defaultOperator, new File(stopWordFilePath))
+    val br = new BooleanRetriever(invBaseName, isRanked)
+    testQuerySet(queryFileName, outputDir, qr, br, runId,numResults)
 
     //***uncomment the following queries to see individual queries
-//        testQuery("data/sample-output",qr, br,"97","#NEAR/1 (south africa)",100)
-//        testQuery("data/sample-output",qr, br,"100","#NEAR/2 (family tree)",100)
-//        testQuery("data/sample-output",qr, br,"101","#OR (obama #NEAR/2 (family tree))",100)
-//        testQuery("data/sample-output",qr, br,"102","#OR (espn sports)",100)
+    //***they are also used to generate the sample queries
+    //        testQuery("data/sample-output",qr, br,"97","#NEAR/1 (south africa)",100)
+    //        testQuery("data/sample-output",qr, br,"100","#NEAR/2 (family tree)",100)
+    //        testQuery("data/sample-output",qr, br,"101","#OR (obama #NEAR/2 (family tree))",100)
+    //        testQuery("data/sample-output",qr, br,"102","#OR (espn sports)",100)
     println("time: " + (System.nanoTime - start) / 1e9 + "s")
   }
 
@@ -285,10 +260,10 @@ object BooleanRetriever extends Logging {
       if (results.length == 0) {
         log.error("Really? 0 document retrieved?")
       }
-      //      println("==================Top 5 results=================")
-      //      println(TrecLikeResult.header)
-      //      results.take(5).foreach(println)
-      //      println("================================================")
+            println("==================Top 5 results=================")
+            println(TrecLikeResult.header)
+            results.take(5).foreach(println)
+            println("================================================")
       resultsToOutput.foreach(r => writer.write(r.toString + "\n"))
     })
     writer.close()
@@ -310,7 +285,7 @@ object BooleanRetriever extends Logging {
     writer.write(TrecLikeResult.header + "\n")
 
     val resultsToOutput = if (k>0) results.take(k) else results
-    results.foreach(r=> writer.write(r.toString + "\n"))
+    resultsToOutput.foreach(r=> writer.write(r.toString + "\n"))
 
     writer.close()
     log.debug("Number of documents retrieved: " + results.length)

@@ -18,8 +18,4 @@ object Posting {
   def apply(docId:Int,positions:List[Int],score:Double): Posting ={
     new Posting(docId,-1,-1,positions,score)
   }
-
-  def empty(): Posting = {
-    new Posting(-1, -1, -1, List[Int](),0.0,true)
-  }
 }

@@ -50,4 +50,27 @@ class Configuration (val configFile:File) extends Logging {
 
       value
     }
+
+    def getInt(key :String) : Int = {
+      val value =
+        try{
+          get(key).toInt
+        } catch{
+          case e: NumberFormatException => -1
+          throw new ConfigurationException("The property value is not Int")
+        }
+      value
+    }
+
+    def getDefaultOperator(key:String):String = {
+      val legalDefaultOperator = Set("#AND","#OR")
+
+      val operator = get(key)
+
+      if (!legalDefaultOperator.contains(operator)) {
+        throw new ConfigurationException("The key [%s] can only take the following values:\n%s".format(key,legalDefaultOperator.mkString("\t")))
+      }
+
+      operator
+    }
 }

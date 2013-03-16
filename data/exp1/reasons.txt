@@ -1,0 +1,29 @@
+"family tree" is clear a phrase and this query should intend to find "obama's family tree", so it is better to group "family tree" with NEAR, 2 is a gentle gap that allow some possible terms to insert inside the phrase. Then we do an "AND" to make sure files retrieved are only about "obama" 's family and only about "family tree", not some other news about "obama".
+
+"french lick resort" is a name of a casino, this query might intend to find the specific information about this casino, thus using #NEAR operator on the casino name could help. Also, there are many other casinos, to achieve a better result set to look up, #AND is more appropriate.
+
+"7:air travel information", this kind of query are likely to be on the title of many website to attract users. Also, although words like "information" and "travel" are very common, it is not likely that they appear a lot in the title, so using #OR is good to combine the results.
+
+"espn sports", "espn" is an organization and it has its own website, and the title of the sites should contain the keyword ESPN, additionally, title field match of this specific Named Entity type term can yeild high precision. On the other hand, sports is a more general word so it is put into body. "#AND" is used to avoid too many articles about sports.
+
+"arizona game and fish", the information need is possibly to find place where there are games and fishes in Arizona, so it is better to use #NEAR to combine the two needs. Then adding another #NEAR to restrict the place at Arizona could achieve better score.
+
+"poker tournaments", these two terms are very close to a phrase but we can also imagine some words to be inserted between them, "poker" is not a very common word so it will lead to pretty good precision, so using a slightly larger window can improve the recall.
+
+#OR(#AND(wedding+title budget+body) calculator+title), terms like "wedding" is the theme and should be likely to appear in title to attract people, the term "budget" is more likely to appear in the body. The term "calculator" is rather noisy, put it into body will get a lot of irrelevant results.
+
+#NEAR/3(orange county convention center) this is probably looking for the entity "Orange County Convention Center", so the whole phrase should be operated using #NEAR, this phrase is long and there could be some break during it, so a soft window 3 is used.
+
+#NEAR/3(president of the #NEAR/1 (united states)) united states is a phrase so #NEAR/1 is used to enforce that, the word "president" should be put close to the phrase, but considering the possible stop words between them, a NEAR/3 is used.
+
+uss #NEAR/2(yorktown charleston) sc these terms are very specific, if we find the #AND of them there won't be results outputted, so "#OR" is used to group them together. The two main content verbs are
+
+"heart rate" is likely to be a phrase so that using #NEAR to constraint them can help find more relevant documents.
+
+"ps 2" should be a term referring to the game machine, so that using a tight #NEAR/2 can avoid retrieve a lot of irrelevant document containing these two short term, the digit "2" is very noisy and common.
+
+"uss yorktown" is a phrase the name of a ship, so these two terms are grouped together by #NEAR,
+
+"neil young" is probably looking for a person named Neil Young, so using a NEAR operator could help narrow down the search
+
+Query operator does not affect single term queries

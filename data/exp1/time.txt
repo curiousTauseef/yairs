@@ -1,0 +1,8 @@
+boolean_ranked_and - time: 26.505834s
+boolean_rakned_or - time: 51.555255s
+boolean_rank_structured - time: 28.03799s
+
+boolean_unranked_and - time: 29.341282s
+boolean_unranked_or - time: 56.429139s
+boolean_unrank_structred - time: 25.370183s
+

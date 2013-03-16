@@ -156,7 +156,65 @@ class BooleanRetriever(val invFileBaseName: String, ranked: Boolean = true) exte
     val iter1 = list1.iterator
     val iter2 = list2.iterator
 
-    list1 ::: list2
+    val intersectedPostings = new ListBuffer[Posting]()
+
+    log.debug("Disjunct!")
+
+
+    if (iter1.hasNext && iter2.hasNext) {
+      var p1 = iter1.next()
+      var p2 = iter2.next()
+
+      breakable{
+        while (true) {
+          val docId1 = p1.docId
+          val docId2 = p2.docId
+
+          if (p1.docId == 890586) println("p1 "+p2.docId)
+          if (p2.docId == 890586) println("p2 "+p1.docId)
+
+          if (p1.docId == 890585) println("p1!")
+          if (p2.docId == 890585) println("p2!")
+
+          if (docId1 == docId2) {
+            intersectedPostings.append(Posting(docId1, math.max(p1.score, p2.score)))
+            if (!iter1.hasNext) {
+              break
+            } else if (!iter2.hasNext){
+              break
+            }
+            p1 = iter1.next()
+            p2 = iter2.next()
+          } else if (docId1 < docId2) {
+            intersectedPostings.append(Posting(docId1,p1.score))
+            if (!iter1.hasNext){
+              intersectedPostings.append(Posting(docId2,p2.score))
+              break
+            }
+            p1 = iter1.next()
+          } else {
+            intersectedPostings.append(Posting(docId2,p2.score))
+            if (!iter2.hasNext){
+              intersectedPostings.append(Posting(docId1,p1.score))
+              break
+            }
+            p2 = iter2.next()
+          }
+        }
+      }
+    }
+
+    while(iter1.hasNext){
+      val p = iter1.next()
+      intersectedPostings.append(Posting(p.docId,p.score))
+    }
+
+    while(iter2.hasNext){
+      val p = iter2.next()
+      intersectedPostings.append(Posting(p.docId,p.score))
+    }
+
+    intersectedPostings.toList
   }
 
   /**

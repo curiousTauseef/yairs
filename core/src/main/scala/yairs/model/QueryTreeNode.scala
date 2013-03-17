@@ -1,6 +1,6 @@
 package yairs.model
 
-import yairs.util.PrefixBooleanQueryParser
+import yairs.util.PrefixQueryParser
 import org.eintr.loglady.Logging
 
 /**
@@ -9,12 +9,13 @@ import org.eintr.loglady.Logging
  * Date: 2/20/13
  * Time: 10:36 AM
  */
-class QueryTreeNode(val queryOperator: String, subQuery: String, val defaultField: String ,queryPaser: PrefixBooleanQueryParser) extends Logging {
+class QueryTreeNode(val queryOperator: String, subQuery: String, val defaultField: String ,queryPaser: PrefixQueryParser) extends Logging {
   private val queryString = subQuery.trim
 
   val operator = if (queryOperator == "#AND") QueryOperator.AND
   else if (queryOperator.startsWith("#NEAR")) QueryOperator.NEAR
   else if (queryOperator == "#OR") QueryOperator.OR
+  else if (queryOperator == "#SUM") QueryOperator.SUM
   else throw new IllegalArgumentException("Cannot recognize query operator")
 
   val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else 1

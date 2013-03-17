@@ -1,6 +1,6 @@
 package yairs.model
 
-import yairs.util.{Configuration, PrefixBooleanQueryParser}
+import yairs.util.{Configuration, PrefixQueryParser}
 import org.eintr.loglady.Logging
 import java.io.File
 
@@ -14,7 +14,7 @@ class BooleanQuery(id: String, query: String, config:Configuration) extends Quer
   val queryId = id
   val queryString = query
 
-  val queryParser = new PrefixBooleanQueryParser(config)
+  val queryParser = new PrefixQueryParser(config)
   val queryRoot = queryParser.parseQueryString(queryString)
 
   def dump() {

@@ -9,4 +9,6 @@ package yairs.model
 trait Query {
   val queryId: String
   val queryString: String
+  val queryRoot:QueryTreeNode
+  def dump()
 }

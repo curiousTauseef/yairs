@@ -1,7 +1,6 @@
 package yairs.util
 
 import java.io.File
-import yairs.model.QueryField
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,14 +10,18 @@ import yairs.model.QueryField
  * To change this template use File | Settings | File Templates.
  */
 object FileUtils {
-  def getInvertedFile(invFileBaseName:String, term: String, field: QueryField.Value): File = {
-    if (field ==QueryField.BODY)
-      new File(invFileBaseName + "/" + term + ".inv")
-    else if (field == QueryField.TITLE){
-      val invPath = invFileBaseName + "_title/" + term + ".title.inv"
-      println(invPath)
-      new File(invPath)
+  def getInvertedFile(invFileBaseName: String, term: String, field: String, isDefaultField: Boolean): File = {
+    val realField = if (isDefaultField) "" else field
+    val pathName = (invFileBaseName+realField).stripSuffix("_") + "/"
+    val filePath = if (isDefaultField) pathName + term + ".inv" else pathName + term +"."+ field + ".inv"
+
+    try {
+      new File(filePath)
+    } catch {
+      case e: Exception => e.printStackTrace()
+      throw new IllegalArgumentException("Cannot find InvertedList at [%s]. Maybe field [%s] is not supported".format(filePath,field))
+      System.exit(1)
+      null
     }
-    else throw new IllegalArgumentException("Currently only support BODY and TITLE fields.")
   }
 }

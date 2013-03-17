@@ -4,6 +4,7 @@ import java.io.{FileNotFoundException, FileOutputStream, FileInputStream, File}
 import java.util.Properties
 import org.eintr.loglady.Logging
 import yairs.exceptions.ConfigurationException
+import yairs.model.QueryField
 
 /**
  * Created with IntelliJ IDEA.
@@ -73,4 +74,5 @@ class Configuration (val configFile:File) extends Logging {
 
       operator
     }
+
 }

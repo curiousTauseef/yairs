@@ -1,6 +1,6 @@
 package yairs.util
 
-import yairs.model.QueryTreeNode
+import yairs.model.{QueryField, QueryTreeNode}
 import org.eintr.loglady.Logging
 import collection.mutable
 import io.Source
@@ -13,25 +13,27 @@ import java.io.File
  * Date: 2/20/13
  * Time: 11:19 AM
  */
-class PrefixBooleanQueryParser(stopWordFile: File) extends QueryParser with Logging {
+class PrefixBooleanQueryParser(config:Configuration) extends QueryParser with Logging {
+  val defaultField = config.get("yairs.boolean.field.default")
+  val defaultOperator = config.getDefaultOperator("yaris.boolean.operator.default")
+  val stopWordFilePath = config.get("yairs.stoplist.path")
+  val stopWordFile = new File(stopWordFilePath)
   private val stopWordDict = Source.fromFile(stopWordFile).getLines().toSet
-  //private val defaultOperator = "#AND"
 
   def isStop(word: String) = stopWordDict.contains(word.trim)
 
-  def parseQueryString(rawStr: String, defaultOperator: String): QueryTreeNode = {
+  def parseQueryString(rawStr: String): QueryTreeNode = {
     val str = rawStr.trim
-    //    println(str)
     if (str.startsWith("#OR")) {
-      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")), defaultOperator, this)
+      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")),defaultField, this)
     } else if (str.startsWith("#AND")) {
-      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")), defaultOperator, this)
+      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")),defaultField, this)
     } else if (str.startsWith("#NEAR")) {
       val reg = """^(#NEAR/\d+)(.*)""".r
       val reg(prefix, suffix) = str
-      new QueryTreeNode(prefix, stripOuterBrackets(suffix), defaultOperator, this)
+      new QueryTreeNode(prefix, stripOuterBrackets(suffix),defaultField, this)
     } else {
-      new QueryTreeNode(defaultOperator, stripOuterBrackets(str), defaultOperator, this)
+      new QueryTreeNode(defaultOperator, stripOuterBrackets(str),defaultField, this)
     }
   }
 

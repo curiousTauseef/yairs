@@ -4,6 +4,7 @@ import java.io.File
 import io.Source
 import yairs.model.BooleanQuery
 import org.eintr.loglady.Logging
+import yairs.util.Configuration
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,18 +12,25 @@ import org.eintr.loglady.Logging
  * Date: 2/6/13
  * Time: 9:38 PM
  */
-class BooleanQueryReader(val defaultOperator:String, stopWordFile:File) extends QueryReader{
+class BooleanQueryReader(config:Configuration) extends QueryReader{
   @Override
-  def getQueries(queryFile:File):List[BooleanQuery] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1),defaultOperator,stopWordFile)).toList
+  def getQueries(queryFile:File):List[BooleanQuery] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1),config)).toList
 
-  def getQuery(qid:String,queryString:String):BooleanQuery = new BooleanQuery(qid,queryString,defaultOperator,stopWordFile)
+  def getQuery(qid:String,queryString:String):BooleanQuery = new BooleanQuery(qid,queryString,config)
 }
 
 object BooleanQueryReader extends Logging{
   def main(args : Array[String]) {
+    if (args.length == 0) {
+      log.error("Please supply the configuration file path as command line parameter")
+      System.exit(1)
+    }
+    val configurationFileName = args(0)
+    val config = new Configuration(configurationFileName)
+
     log.debug("Try some simple queries")
 
-    val qr = new BooleanQueryReader("#OR",new File("data/stoplist.txt"))
+    val qr = new BooleanQueryReader(config)
 
     testQuery(qr)
     //testQueries(qr)

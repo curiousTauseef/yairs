@@ -34,7 +34,7 @@ class BooleanRetriever(val invFileBaseName: String, ranked: Boolean = true) exte
 
   private def evaluateNode(node: QueryTreeNode): List[Posting] = {
     if (node.isLeaf) {
-      InvertedList(FileUtils.getInvertedFile(invFileBaseName: String, node.term, node.field), ranked).postings
+      InvertedList(FileUtils.getInvertedFile(invFileBaseName: String, node.term ,node.field,node.field == node.defaultField), ranked).postings
     }
     else {
       val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
@@ -280,11 +280,10 @@ object BooleanRetriever extends Logging {
     val runId = config.get("yairs.run.id")
     val isRankStr = config.get("yairs.boolean.ranked")
     val isRanked = if (isRankStr == "true") true else false
-    val defaultOperator = config.getDefaultOperator("yaris.boolean.operator.default")
     val numResults = config.getInt("yairs.run.results.num")
 
     val start = System.nanoTime
-    val qr = new BooleanQueryReader(defaultOperator, new File(stopWordFilePath))
+    val qr = new BooleanQueryReader(config)
     val br = new BooleanRetriever(invBaseName, isRanked)
     testQuerySet(queryFileName, outputDir, qr, br, runId,numResults)
 

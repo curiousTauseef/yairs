@@ -13,9 +13,9 @@ import java.io.File
  * Date: 2/20/13
  * Time: 11:19 AM
  */
-class PrefixBooleanQueryParser(config:Configuration) extends QueryParser with Logging {
-  val defaultField = config.get("yairs.boolean.field.default")
-  val defaultOperator = config.getDefaultOperator("yaris.boolean.operator.default")
+class PrefixQueryParser(config:Configuration) extends QueryParser with Logging {
+  val defaultField = config.get("yairs.field.default")
+  val defaultOperator = config.getDefaultOperator("yaris.operator.default")
   val stopWordFilePath = config.get("yairs.stoplist.path")
   val stopWordFile = new File(stopWordFilePath)
   private val stopWordDict = Source.fromFile(stopWordFile).getLines().toSet

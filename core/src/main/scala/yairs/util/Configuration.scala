@@ -64,12 +64,13 @@ class Configuration (val configFile:File) extends Logging {
     }
 
     def getDefaultOperator(key:String):String = {
-      val legalDefaultOperator = Set("#AND","#OR")
+      val legalDefaultOperator = Set("#AND","#OR","#SUM")
 
       val operator = get(key)
 
       if (!legalDefaultOperator.contains(operator)) {
-        throw new ConfigurationException("The key [%s] can only take the following values:\n%s".format(key,legalDefaultOperator.mkString("\t")))
+        log.error("The key [%s] can only take the following values:\n%s".format(key,legalDefaultOperator.mkString("\t")))
+        throw new ConfigurationException("")
       }
 
       operator

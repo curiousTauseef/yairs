@@ -24,4 +24,18 @@ object FileUtils {
       null
     }
   }
+
+  def getInvertedFile(invFileBaseName: String, term: String, field: String, isDefaultField: Boolean, isHw2:Boolean = true): File = {
+    val pathName = invFileBaseName+"/"+field + "/"
+    val filePath = if (isDefaultField) pathName + term + ".inv" else pathName + term +"."+ field + ".inv"
+
+    try {
+      new File(filePath)
+    } catch {
+      case e: Exception => e.printStackTrace()
+      throw new IllegalArgumentException("Cannot find InvertedList at [%s]. Maybe field [%s] is not supported".format(filePath,field))
+      System.exit(1)
+      null
+    }
+  }
 }

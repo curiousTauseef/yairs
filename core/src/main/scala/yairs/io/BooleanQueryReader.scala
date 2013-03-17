@@ -2,7 +2,7 @@ package yairs.io
 
 import java.io.File
 import io.Source
-import yairs.model.BooleanQuery
+import yairs.model.{Query, BooleanQuery}
 import org.eintr.loglady.Logging
 import yairs.util.Configuration
 
@@ -14,9 +14,9 @@ import yairs.util.Configuration
  */
 class BooleanQueryReader(config:Configuration) extends QueryReader{
   @Override
-  def getQueries(queryFile:File):List[BooleanQuery] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1),config)).toList
+  def getQueries(queryFile:File):List[Query] = Source.fromFile(queryFile).getLines().map(line => line.split(":")).map(fields => new BooleanQuery(fields(0),fields(1),config)).toList
 
-  def getQuery(qid:String,queryString:String):BooleanQuery = new BooleanQuery(qid,queryString,config)
+  def getQuery(qid:String,queryString:String):Query = new BooleanQuery(qid,queryString,config)
 }
 
 object BooleanQueryReader extends Logging{

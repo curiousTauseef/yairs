@@ -73,16 +73,27 @@
                 </executions>
                 <configuration>
                     <launchers>
-                    <launcher>
-                        <id>boolean</id>
-                        <mainClass>yairs.retrieval.BooleanRetriever</mainClass>
-                        <args>
-                            <arg>../conf/boolean.properties</arg>
-                        </args>
-                        <jvmArgs>
-                            <jvmArg>-Xmx512m</jvmArg>
-                        </jvmArgs>
-                    </launcher>
+                        <launcher>
+                            <id>boolean</id>
+                            <mainClass>yairs.retrieval.BooleanRetriever</mainClass>
+                            <args>
+                                <arg>../conf/boolean.properties</arg>
+                            </args>
+                            <jvmArgs>
+                                <jvmArg>-Xmx3g</jvmArg>
+                            </jvmArgs>
+                        </launcher>
+                        <launcher>
+                            <id>bm25</id>
+                            <mainClass>yairs.retrieval.BM25Retriever</mainClass>
+                            <args>
+                                <arg>../conf/bm25.properties</arg>
+                            </args>
+                            <jvmArgs>
+                                <jvmArg>-Xmx512m</jvmArg>
+                            </jvmArgs>
+                        </launcher>
+
                     </launchers>
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>

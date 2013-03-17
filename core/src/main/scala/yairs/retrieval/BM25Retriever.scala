@@ -15,7 +15,10 @@ import java.io.{PrintWriter, File}
  * Time: 6:43 PM
  */
 class BM25Retriever(invFileBaseName: String, config: Configuration) extends Retriever with Logging {
-  def getInvertedFile(node: QueryTreeNode) = InvertedList(FileUtils.getInvertedFile(invFileBaseName: String, node.term, node.field, node.field == node.defaultField,true),true,true)
+  def getInvertedFile(node: QueryTreeNode) = {
+    log.debug("Getting inverted file for [%s]".format(node.term))
+    InvertedList(FileUtils.getInvertedFile(invFileBaseName: String, node.term, node.field, node.field == node.defaultField,true),true,true)
+  }
 
   val documentCount = config.getInt("yairs.document.count").toDouble
   val averageDocumentSize = config.getInt("yairs.document.average.size").toDouble

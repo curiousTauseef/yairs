@@ -11,4 +11,5 @@ import java.io.File
  */
 trait QueryReader {
      def getQueries(queryFile: File):List[Query]
+     def getQuery(qid:String,queryString:String):Query
 }

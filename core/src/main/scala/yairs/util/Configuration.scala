@@ -52,6 +52,11 @@ class Configuration (val configFile:File) extends Logging {
       value
     }
 
+    def getBoolean(key:String) :Boolean = {
+      val value = get(key)
+      value == "true"
+    }
+
     def getInt(key :String) : Int = {
       val value =
         try{

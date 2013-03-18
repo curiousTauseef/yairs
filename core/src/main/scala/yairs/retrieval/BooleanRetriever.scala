@@ -1,7 +1,7 @@
 package yairs.retrieval
 
 import yairs.model._
-import yairs.io.BooleanQueryReader
+import yairs.io.{QueryReader, BooleanQueryReader}
 import java.io.{PrintWriter, File}
 import yairs.util.{Configuration, FileUtils}
 import org.eintr.loglady.Logging
@@ -15,56 +15,40 @@ import collection.mutable.ListBuffer
  * Time: 12:56 AM
  * To change this template use File | Settings | File Templates.
  */
-class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends Retriever with Logging {
-  def getInvertedFile(node: QueryTreeNode) = {
-    InvertedList(FileUtils.getInvertedFile(invFileBaseName: String, node.term ,node.field,node.field == node.defaultField), ranked)
+class BooleanRetriever(config:Configuration) extends StructuredRetriever with Logging {
+  val name: String = "Boolean"
+
+  val isRanked = config.getBoolean("yairs.ranked")
+  val invBaseName = config.get("yairs.inv.basename")
+
+  def getResults(query: Query, runId: String) = {
+    evaluate(query,runId,sortById = !isRanked,isStructured = true)
   }
 
-  protected def evaluateNode(node: QueryTreeNode) = {
-    if (node.isLeaf) {
-      getInvertedFile(node).postings
-    }
-    else {
-      val childLists = node.children.foldLeft(List[List[Posting]]())((lists, child) => {
-        if (child.isStop)
-          lists
-        else
-          evaluateNode(child) :: lists
-      }).reverse //ensure evaluation sequences
-      val optimizedChildLists = if (node.operator == QueryOperator.AND) childLists.sortBy(l => l.length) else childLists
-      mergePostingLists(optimizedChildLists, node)
-    }
+  protected def evaluateBowQuery(root: QueryTreeNode): List[Posting] = {
+    throw new UnsupportedOperationException("Boolean retriever is not implemented for BOW retrieval")
   }
 
-  def mergePostingLists(postingLists: List[List[Posting]], node: QueryTreeNode) = {
-    var isFirst = true //basically avoid empty list to enter conjunction operation
-    postingLists.foldLeft(List[Posting]())((mergingList, currentList) => {
-      if (isFirst) {
-        isFirst = false
-        currentList
-      }
-      else intersect2PostingLists(mergingList, currentList, node)
-    })
+  protected def getInvertedFile(leaf: QueryTreeNode, scorer: (Int, Int, Int, Int) => Double): InvertedList = {
+    InvertedList(FileUtils.getInvertedFile(invBaseName: String, leaf.term, leaf.field, leaf.defaultField, isHw2 = true), isRanked)
   }
 
-  def intersect2PostingLists(list1: List[Posting], list2: List[Posting], node: QueryTreeNode): List[Posting] = {
-    if (node.isLeaf) throw new IllegalArgumentException("No intersection to do on leaf node")
+  protected def termScorer(collectionFrequency: Int, documentFreq: Int, termFrequency: Int, documentLength: Int): Double = termFrequency
 
-    if (node.operator == QueryOperator.AND) {
-      conjunct(list1, list2)
-    } else if (node.operator == QueryOperator.OR) {
-      disjunct(list1, list2)
-    } else if (node.operator == QueryOperator.NEAR) {
-      positionIntersect(list1, list2, node.proximity)
-    } else {
-      throw new IllegalArgumentException("The operator [%s] is not supported".format(node.operator))
-      null
-    }
-  }
+  /**
+   * Interesect two list based on postions and retain sequential. In other words, the "NEAR" operator
+   * @param list1 The list to be intersect
+   * @param list2 The other list to be intersect
+   * @param k The proximity distance allowed
+   * @return  Resulting posting list
+   */
+  protected def twoWayMerge(list1: InvertedList, list2: InvertedList, k: Int): InvertedList = {
+    val iter1 = list1.postings.iterator
+    val iter2 = list2.postings.iterator
 
-  private def positionIntersect(list1: List[Posting], list2: List[Posting], k: Int): List[Posting] = {
-    val iter1 = list1.iterator
-    val iter2 = list2.iterator
+    //totalTermCount is a duplicated statistic in each inverted list!
+    var documentFreq = 0
+    var collectionFreq = 0
 
     val intersectedPostings = new ListBuffer[Posting]()
     if (iter1.hasNext && iter2.hasNext) {
@@ -80,8 +64,10 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
             val nearMatchesList = getNearMatchedPositions(p1.positions, p2.positions, k)
             val matches = nearMatchesList.length
             if (matches > 0) {
-              val score = if (ranked) matches else 1
-              intersectedPostings.append(Posting(docId1, nearMatchesList.map(_._1), score))
+              collectionFreq += matches
+              documentFreq += 1
+              val score = matches
+              intersectedPostings.append(Posting(docId1, nearMatchesList.map(_._2), score))
             }
             if (!(iter1.hasNext && iter2.hasNext)) {
               break()
@@ -98,14 +84,14 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
         }
       }
     }
-    intersectedPostings.toList
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq,intersectedPostings.toList)
   }
 
   /**
-   * Intersect two positions list, return the positions of the second list
-   * @param positions1
-   * @param positions2
-   * @return
+   * Intersect two positions list, return the positions pair where they match the proximity requirement
+   * @param positions1  Position list for the first document
+   * @param positions2  Position list for the second document
+   * @return A list of tuples where they match, normally the length of this list is what you concern
    */
   private def getNearMatchedPositions(positions1: List[Int], positions2: List[Int], k: Int): List[(Int, Int)] = {
     val iter1 = positions1.iterator
@@ -123,8 +109,18 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
             if (pp2 - pp1 <= k) {
               results.append((pp1, pp2))
             }
-            if (!iter1.hasNext) break()
+            //This is the implementation that forward all the points, as discussed in email discussion
+            if (!(iter1.hasNext && iter2.hasNext)) {
+              break()
+            }
             pp1 = iter1.next()
+            pp2 = iter2.next()
+            //This is the implementation that forward the smaller points, which conform with the sample result given in HW1, but not correct according to email discussions
+            //            if (!iter1.hasNext) {
+            //              break()
+            //            }
+            //            pp1 = iter1.next()
+
           } else {
             if (!iter2.hasNext) break()
             pp2 = iter2.next()
@@ -135,47 +131,53 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
     results.toList
   }
 
+  protected def disjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.max(p1Score,p2Score)
+
   /**
    * OR operation for 2 posting lists intersection
    * @param list1
    * @param list2
    * @return
    */
-  private def disjunct(list1: List[Posting], list2: List[Posting]): List[Posting] = {
-    val iter1 = list1.iterator
-    val iter2 = list2.iterator
+  protected def disjunct(list1: InvertedList, list2: InvertedList): InvertedList = {
+    val iter1 = list1.postings.iterator
+    val iter2 = list2.postings.iterator
 
     val intersectedPostings = new ListBuffer[Posting]()
+
+    //totalTermCount is a duplicated statistic in each inverted list!
+    var documentFreq = 0
+    var collectionFreq = 0
 
     if (iter1.hasNext && iter2.hasNext) {
       var p1 = iter1.next()
       var p2 = iter2.next()
-
-      breakable{
+      breakable {
         while (true) {
           val docId1 = p1.docId
           val docId2 = p2.docId
 
           if (docId1 == docId2) {
-            intersectedPostings.append(Posting(docId1, math.max(p1.score, p2.score)))
-            if (!iter1.hasNext) {
-              break()
-            } else if (!iter2.hasNext){
+            documentFreq += 1
+            //Is this right?
+            collectionFreq += math.max(list1.collectionFrequency, list2.collectionFrequency)
+            intersectedPostings.append(Posting(docId1, disjunctMatchScore(p1.score,p2.score)))
+            if (!(iter1.hasNext && iter2.hasNext)) {
               break()
             }
             p1 = iter1.next()
             p2 = iter2.next()
           } else if (docId1 < docId2) {
-            intersectedPostings.append(Posting(docId1,p1.score))
-            if (!iter1.hasNext){
-              intersectedPostings.append(Posting(docId2,p2.score))
+            intersectedPostings.append(Posting(docId1, p1.score))
+            if (!iter1.hasNext) {
+              intersectedPostings.append(Posting(docId2, p2.score))
               break()
             }
             p1 = iter1.next()
           } else {
-            intersectedPostings.append(Posting(docId2,p2.score))
-            if (!iter2.hasNext){
-              intersectedPostings.append(Posting(docId1,p1.score))
+            intersectedPostings.append(Posting(docId2, p2.score))
+            if (!iter2.hasNext) {
+              intersectedPostings.append(Posting(docId1, p1.score))
               break()
             }
             p2 = iter2.next()
@@ -184,17 +186,17 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
       }
     }
 
-    while(iter1.hasNext){
+    while (iter1.hasNext) {
       val p = iter1.next()
-      intersectedPostings.append(Posting(p.docId,p.score))
+      intersectedPostings.append(Posting(p.docId, p.score))
     }
 
-    while(iter2.hasNext){
+    while (iter2.hasNext) {
       val p = iter2.next()
-      intersectedPostings.append(Posting(p.docId,p.score))
+      intersectedPostings.append(Posting(p.docId, p.score))
     }
 
-    intersectedPostings.toList
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq,intersectedPostings.toList)
   }
 
   /**
@@ -203,11 +205,15 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
    * @param list2
    * @return  Merged posting list
    */
-  private def conjunct(list1: List[Posting], list2: List[Posting]): List[Posting] = {
-    val iter1 = list1.iterator
-    val iter2 = list2.iterator
+  protected def conjunct(list1: InvertedList, list2: InvertedList): InvertedList = {
+    val iter1 = list1.postings.iterator
+    val iter2 = list2.postings.iterator
 
     val intersectedPostings = new ListBuffer[Posting]()
+
+    //totalTermCount is a duplicated statistic in each inverted list!
+    var documentFreq = 0
+    var collectionFreq = 0
     if (iter1.hasNext && iter2.hasNext) {
       var p1 = iter1.next()
       var p2 = iter2.next()
@@ -218,114 +224,30 @@ class BooleanRetriever(invFileBaseName: String, ranked: Boolean = true) extends 
           val docId2 = p2.docId
 
           if (docId1 == docId2) {
-            intersectedPostings.append(Posting(docId1, math.min(p1.score, p2.score)))
+            intersectedPostings.append(Posting(docId1, conjunctMatchScore(p1.score, p2.score)))
+            documentFreq += 1
+            collectionFreq += math.min(list1.collectionFrequency,list2.collectionFrequency)
             if (!(iter1.hasNext && iter2.hasNext)) {
-              break
+              break()
             }
             p1 = iter1.next()
             p2 = iter2.next()
           } else if (docId1 < docId2) {
-            if (!iter1.hasNext) break
+            if (!iter1.hasNext) break()
             p1 = iter1.next()
           } else {
-            if (!iter2.hasNext) break
+            if (!iter2.hasNext) break()
             p2 = iter2.next()
           }
         }
       }
     }
-    intersectedPostings.toList
-  }
-}
-
-object BooleanRetriever extends Logging {
-  def main(args: Array[String]) {
-    if (args.length == 0) {
-      log.error("Please supply the configuration file path as command line parameter")
-      System.exit(1)
-    }
-    val configurationFileName = args(0)
-    val config = new Configuration(configurationFileName)
-
-    runBoolean(config)
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq,intersectedPostings.toList)
   }
 
-  def runBoolean(config:Configuration){
-    //***edit the configuration file to change the following value
-    val queryFileName = config.get("yairs.query.path")
-    val outputDir = config.get("yairs.output.path")
-    val invBaseName = config.get("yairs.inv.basename")
-    val runId = config.get("yairs.run.id")
-    val isRankStr = config.get("yairs.ranked")
-    val isRanked = if (isRankStr == "true") true else false
-    val numResults = config.getInt("yairs.run.results.num")
+  protected def conjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.min(p1Score,p2Score)
 
-    val start = System.nanoTime
-    val qr = new BooleanQueryReader(config)
-    val br = new BooleanRetriever(invBaseName, isRanked)
-    testQuerySet(queryFileName, outputDir, qr, br, runId,numResults,!isRanked)
-
-    //***uncomment the following queries to see individual queries
-    //***they are also used to generate the sample queries
-    //        testQuery("data/sample-output",qr, br,"97","#NEAR/1 (south africa)",100)
-    //        testQuery("data/sample-output",qr, br,"100","#NEAR/2 (family tree)",100)
-    //        testQuery("data/sample-output",qr, br,"101","#OR (obama #NEAR/2 (family tree))",100)
-    //        testQuery("data/sample-output",qr, br,"102","#OR (espn sports)",100)
-    println("time: " + (System.nanoTime - start) / 1e9 + "s")
-  }
-
-  /**
-   * Method to run a query set
-   * @param queryFilePath     The path to the query file
-   * @param outputDirectory   The output direcotry to store the results
-   * @param qr  QueryReader object
-   * @param br  Boolean Retriever object
-   * @param runId A String used as a run ID
-   * @param numResultsToOutput  Number of results to output
-   */
-  def testQuerySet(queryFilePath: String, outputDirectory: String, qr: BooleanQueryReader, br: BooleanRetriever, runId: String,  numResultsToOutput:Int, rankById:Boolean) {
-    val queries = qr.getQueries(new File(queryFilePath))
-    val writer = new PrintWriter(new File(outputDirectory + "/%s".format(runId)))
-    writer.write(TrecLikeResult.header + "\n")
-
-    queries.foreach(query => {
-      val results = br.evaluate(query, runId,rankById)
-      val resultsToOutput = if (numResultsToOutput > 0) results.take(numResultsToOutput) else results
-      log.debug("Number of documents retrieved: " + results.length)
-      if (results.length == 0) {
-        log.error("Really? 0 document retrieved?")
-      }
-            println("==================Top 5 results=================")
-            println(TrecLikeResult.header)
-            results.take(5).foreach(println)
-            println("================================================")
-      resultsToOutput.foreach(r => writer.write(r.toString + "\n"))
-    })
-    writer.close()
-  }
-
-  /**
-   * Test individual query
-   *
-   * @param outputDirectory directory to output the result
-   * @param qr A Query Reader object
-   * @param br A boolean retriever object
-   * @param queryId A string indicating the queryID
-   * @param queryString Query to be run
-   * @param k top k results returned
-   */
-  def testQuery(outputDirectory: String, qr: BooleanQueryReader, br: BooleanRetriever, queryId: String, queryString: String, k: Int, rankById:Boolean) {
-    val results = br.evaluate(qr.getQuery(queryId, queryString), "run" + queryId, rankById)
-    val writer = new PrintWriter(new File(outputDirectory + "/%s.txt".format("run" + queryId)))
-    writer.write(TrecLikeResult.header + "\n")
-
-    val resultsToOutput = if (k>0) results.take(k) else results
-    resultsToOutput.foreach(r=> writer.write(r.toString + "\n"))
-
-    writer.close()
-    log.debug("Number of documents retrieved: " + results.length)
-    println("=================Top 10 results=================")
-    results.take(10).foreach(println)
-    println("================================================")
+  protected def unorderedWindow(): InvertedList = {
+    throw new UnsupportedOperationException("Boolean retriever has not implemented unordered window.")
   }
 }

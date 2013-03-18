@@ -19,7 +19,7 @@ case class InvertedList(term: String, stem: String, collectionFrequency: Int, to
     postings.foreach(posting => {
       termCount += posting.tf
       lineCount += 1
-      println("[Doc id]: %s , [TF]: %s , [Document Length]: %s , %s positions are omitted".format(posting.docId, posting.tf, posting.length, posting.positions.length))
+      println("[Doc id]: %s , [TF]: %s , [Document Length]: %s , %s positions are omitted".format(posting.docId, posting.tf, posting.docLength, posting.positions.length))
     })
     log.info(String.format("Dumped inverted list for [%s], with collection frequency [%s], total term count[%s]", term, collectionFrequency.toString, totalTermCount.toString))
     log.info("In this partial inverted list: Term count : [%s], Line count : [%s]".format(termCount, lineCount))
@@ -37,6 +37,16 @@ object InvertedList extends Logging {
     ilr.dump()
     log.info("Done")
   }
+
+
+  def empty():InvertedList = {
+    new InvertedList("","",0,0,0,List[Posting]())
+  }
+
+  def apply(collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting]):InvertedList = {
+    new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings)
+  }
+
 
   def apply(invertedFile: File, ranked: Boolean = true): InvertedList = {
     if (invertedFile.exists()) {
@@ -67,7 +77,15 @@ object InvertedList extends Logging {
     }
   }
 
-  def apply(invertedFile: File, hasDocumentFreq: Boolean, ranked: Boolean): InvertedList = {
+
+  /**
+   * Homework 1 inverted files does not have document frequency.
+   * So a new apply method is used here with one more boolean
+   * @param invertedFile
+   * @param scorer
+   * @return
+   */
+  def apply(invertedFile: File, scorer:(Int,Int,Int,Int)=>Double): InvertedList = {
     if (invertedFile.exists()) {
       val lines = Source.fromFile(invertedFile).getLines().toList
       val (term, stem, collectionFrequency, totalTermCount, documentFreq) = {
@@ -78,16 +96,20 @@ object InvertedList extends Logging {
           (parts(0), parts(0), parts(1).toInt, parts(2).toInt, parts(3).toInt)//an problem in inverted list file
       }
 
+      if (collectionFrequency < 0) {
+        println(invertedFile.getCanonicalPath)
+        println(collectionFrequency)
+        System.exit(1)
+      }
+
       var tempPostings = ListBuffer.empty[Posting]
 
       lines.slice(1, lines.length).foreach(line => {
         val parts = line.trim.split(" ")
         val Array(docId, tf, length) = parts.slice(0, 3).map(str => str.toInt)
         val positions = parts.slice(3, parts.length).map(str => str.toInt).toList
-        if (ranked)
-          tempPostings += (new Posting(docId, tf, length, positions, tf))
-        else
-          tempPostings += (new Posting(docId, tf, length, positions, 1.0))
+
+        tempPostings += (new Posting(docId, tf, length, positions, scorer(collectionFrequency,documentFreq,tf,length)))
       })
 
       val postings = tempPostings.toList

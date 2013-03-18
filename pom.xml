@@ -75,7 +75,7 @@
                     <launchers>
                         <launcher>
                             <id>boolean</id>
-                            <mainClass>yairs.retrieval.BooleanRetriever</mainClass>
+                            <mainClass>yairs.eval.RetrieverRunner</mainClass>
                             <args>
                                 <arg>../conf/boolean.properties</arg>
                             </args>
@@ -85,7 +85,7 @@
                         </launcher>
                         <launcher>
                             <id>bm25</id>
-                            <mainClass>yairs.retrieval.BM25Retriever</mainClass>
+                            <mainClass>yairs.eval.RetrieverRunner</mainClass>
                             <args>
                                 <arg>../conf/bm25.properties</arg>
                             </args>

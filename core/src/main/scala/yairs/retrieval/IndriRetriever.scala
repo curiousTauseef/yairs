@@ -60,7 +60,7 @@ class IndriRetriever(config: Configuration) extends BOWRetriever with Structured
     val intersectedPostings = new ListBuffer[Posting]()
 
     val defaultCollectionFreq = (totalWordCount / documentCount).toInt
-    val defaultScore = termScorer(defaultCollectionFreq, 0, 0, averageDocumentSize)
+    //val defaultScore = termScorer(defaultCollectionFreq, 0, 0, averageDocumentSize)
 
     val pointers = iters.map(iter => if (iter.hasNext) iter.next() else null)
 
@@ -85,7 +85,8 @@ class IndriRetriever(config: Configuration) extends BOWRetriever with Structured
           }
 
         } else {
-          score += defaultScore
+          score += termScorer(invertedLists(index).collectionFrequency, 0, 0, averageDocumentSize)
+
         }
 
         index += 1

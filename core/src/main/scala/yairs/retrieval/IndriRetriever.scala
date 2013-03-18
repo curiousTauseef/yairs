@@ -55,7 +55,6 @@ class IndriRetriever(config: Configuration) extends BOWRetriever with Structured
   }
 
   override def mergeNodes(invertedLists: List[InvertedList], node: QueryTreeNode): InvertedList = {
-//   invertedLists.foreach(l=>println(l.term))
     val iters = invertedLists.map(list => list.postings.iterator).toArray
 
     val intersectedPostings = new ListBuffer[Posting]()
@@ -66,7 +65,7 @@ class IndriRetriever(config: Configuration) extends BOWRetriever with Structured
     val pointers = iters.map(iter => if (iter.hasNext) iter.next() else null)
 
     while (checkAllPointers(pointers)) {
-      val docIds = pointers.filterNot(_== null).map(pointer => pointer.docId)
+      val docIds = pointers.filterNot(_ == null).map(pointer => pointer.docId)
       val minDocId = docIds.reduceLeft((l, r) => if (r < l) r else l)
       var score = 0.0
 
@@ -74,23 +73,27 @@ class IndriRetriever(config: Configuration) extends BOWRetriever with Structured
       pointers.foreach(pointer => {
         if (pointer != null && pointer.docId == minDocId) {
           score += pointer.score
-//          println("%s has it, add %s".format(index,pointer.score))
+          //          if (minDocId == 1 || minDocId == 889209) {
+          //            println(minDocId)
+          //            println("%s has it, add %s".format(index, pointer.score))
+          //            println(pointer.docId)
+          //        }
+          if (iters(index).hasNext) {
+            pointers(index) = iters(index).next()
+          } else {
+            pointers(index) = null
+          }
+
         } else {
           score += defaultScore
-//          println("%s don't has it, add default %s".format(index,defaultScore))
         }
 
-        if (iters(index).hasNext) {
-          pointers(index) = iters(index).next()
-        } else {
-          pointers(index) = null
-        }
         index += 1
       })
       intersectedPostings.append(Posting(minDocId, score))
     }
 
-    InvertedList(defaultCollectionFreq,invertedLists(0).totalTermCount , -1, intersectedPostings.toList)
+    InvertedList(defaultCollectionFreq, invertedLists(0).totalTermCount, -1, intersectedPostings.toList)
   }
 
 

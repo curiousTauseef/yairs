@@ -80,7 +80,7 @@
                                 <arg>../conf/boolean.properties</arg>
                             </args>
                             <jvmArgs>
-                                <jvmArg>-Xmx3g</jvmArg>
+                                <jvmArg>-Xmx512m</jvmArg>
                             </jvmArgs>
                         </launcher>
                         <launcher>
@@ -93,7 +93,16 @@
                                 <jvmArg>-Xmx512m</jvmArg>
                             </jvmArgs>
                         </launcher>
-
+                        <launcher>
+                            <id>indri</id>
+                            <mainClass>yairs.eval.RetrieverRunner</mainClass>
+                            <args>
+                                <arg>../conf/indri.properties</arg>
+                            </args>
+                            <jvmArgs>
+                                <jvmArg>-Xmx512m</jvmArg>
+                            </jvmArgs>
+                        </launcher>
                     </launchers>
                     <scalaVersion>${scala.version}</scalaVersion>
                 </configuration>

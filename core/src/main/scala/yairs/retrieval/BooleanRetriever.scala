@@ -1,8 +1,6 @@
 package yairs.retrieval
 
 import yairs.model._
-import yairs.io.{QueryReader, BooleanQueryReader}
-import java.io.{PrintWriter, File}
 import yairs.util.{Configuration, FileUtils}
 import org.eintr.loglady.Logging
 import scala.util.control.Breaks._
@@ -15,14 +13,14 @@ import collection.mutable.ListBuffer
  * Time: 12:56 AM
  * To change this template use File | Settings | File Templates.
  */
-class BooleanRetriever(config:Configuration) extends StructuredRetriever with Logging {
+class BooleanRetriever(config: Configuration) extends StructuredRetriever with Logging {
   val name: String = "Boolean"
 
   val isRanked = config.getBoolean("yairs.ranked")
   val invBaseName = config.get("yairs.inv.basename")
 
   def getResults(query: Query, runId: String) = {
-    evaluate(query,runId,sortById = !isRanked,isStructured = true)
+    evaluate(query, runId, sortById = !isRanked, isStructured = true)
   }
 
   protected def evaluateBowQuery(root: QueryTreeNode): List[Posting] = {
@@ -35,6 +33,47 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
 
   protected def termScorer(collectionFrequency: Int, documentFreq: Int, termFrequency: Int, documentLength: Int): Double = termFrequency
 
+  def mergeNodes(invertedLists: List[InvertedList], node: QueryTreeNode): InvertedList = {
+    if (node.isLeaf) {
+      throw new IllegalArgumentException("No intersection to do on leaf node")
+      System.exit(1)
+    }
+
+    var isFirst = true //basically avoid empty list to enter conjunction operation
+
+    invertedLists.foldLeft(InvertedList.empty())((mergingList, currentList) => {
+      if (isFirst) {
+        isFirst = false
+        currentList
+      }
+      else {
+        intersect2PostingLists(mergingList, currentList, node)
+      }
+    })
+  }
+
+  /**
+   * The one-term-at-at-time implementation.
+   * @param list1 The list to be intersect
+   * @param list2 The other list to be intersect
+   * @param node  The node where two list to be intersected at, which defines the query operator
+   * @return Resulting posting list
+   */
+  def intersect2PostingLists(list1: InvertedList, list2: InvertedList, node: QueryTreeNode): InvertedList = {
+    if (node.isLeaf) throw new IllegalArgumentException("No intersection to do on leaf node")
+
+    if (node.operator == QueryOperator.AND) {
+      conjunct(list1, list2)
+    } else if (node.operator == QueryOperator.OR) {
+      disjunct(list1, list2)
+    } else if (node.operator == QueryOperator.NEAR) {
+      near(list1, list2, node.proximity)
+    } else {
+      throw new IllegalArgumentException("The operator [%s] is not supported".format(node.operator))
+      null
+    }
+  }
+
   /**
    * Interesect two list based on postions and retain sequential. In other words, the "NEAR" operator
    * @param list1 The list to be intersect
@@ -42,7 +81,7 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
    * @param k The proximity distance allowed
    * @return  Resulting posting list
    */
-  protected def twoWayMerge(list1: InvertedList, list2: InvertedList, k: Int): InvertedList = {
+  protected def near(list1: InvertedList, list2: InvertedList, k: Int): InvertedList = {
     val iter1 = list1.postings.iterator
     val iter2 = list2.postings.iterator
 
@@ -84,7 +123,7 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
         }
       }
     }
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq,intersectedPostings.toList)
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
 
   /**
@@ -131,7 +170,7 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
     results.toList
   }
 
-  protected def disjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.max(p1Score,p2Score)
+  protected def disjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.max(p1Score, p2Score)
 
   /**
    * OR operation for 2 posting lists intersection
@@ -161,7 +200,7 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
             documentFreq += 1
             //Is this right?
             collectionFreq += math.max(list1.collectionFrequency, list2.collectionFrequency)
-            intersectedPostings.append(Posting(docId1, disjunctMatchScore(p1.score,p2.score)))
+            intersectedPostings.append(Posting(docId1, disjunctMatchScore(p1.score, p2.score)))
             if (!(iter1.hasNext && iter2.hasNext)) {
               break()
             }
@@ -196,7 +235,7 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
       intersectedPostings.append(Posting(p.docId, p.score))
     }
 
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq,intersectedPostings.toList)
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
 
   /**
@@ -226,7 +265,7 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
           if (docId1 == docId2) {
             intersectedPostings.append(Posting(docId1, conjunctMatchScore(p1.score, p2.score)))
             documentFreq += 1
-            collectionFreq += math.min(list1.collectionFrequency,list2.collectionFrequency)
+            collectionFreq += math.min(list1.collectionFrequency, list2.collectionFrequency)
             if (!(iter1.hasNext && iter2.hasNext)) {
               break()
             }
@@ -242,10 +281,10 @@ class BooleanRetriever(config:Configuration) extends StructuredRetriever with Lo
         }
       }
     }
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq,intersectedPostings.toList)
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
 
-  protected def conjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.min(p1Score,p2Score)
+  protected def conjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.min(p1Score, p2Score)
 
   protected def unorderedWindow(): InvertedList = {
     throw new UnsupportedOperationException("Boolean retriever has not implemented unordered window.")

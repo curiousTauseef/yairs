@@ -4,6 +4,7 @@ import org.eintr.loglady.Logging
 import java.io.File
 import io.Source
 import collection.mutable.ListBuffer
+import yairs.util.Configuration
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,7 +12,7 @@ import collection.mutable.ListBuffer
  * Date: 2/20/13
  * Time: 6:37 PM
  */
-case class InvertedList(term: String, stem: String, collectionFrequency: Int, totalTermCount: Int, documentFrequency: Int, postings: List[Posting]) extends Logging {
+case class InvertedList(term: String, stem: String, collectionFrequency: Int, totalTermCount: Int, documentFrequency: Int, postings: List[Posting],defaultScore:Double) extends Logging {
   def dump() {
     log.info(String.format("Dumping inverted list for [%s], with collection frequency [%s], total term count[%s]", term, collectionFrequency.toString, totalTermCount.toString))
     var termCount = 0
@@ -40,14 +41,29 @@ object InvertedList extends Logging {
 
 
   def empty():InvertedList = {
-    new InvertedList("","",0,0,0,List[Posting]())
+    new InvertedList("","",0,0,0,List[Posting](),0)
   }
 
-  def apply(collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting]):InvertedList = {
-    new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings)
+  /**
+   * This apply method is used when we create a new inverted list on the run.
+   * It does not read a file
+   * For example, in Indri AND operation
+   * @param collectionFrequency
+   * @param totalTermCount
+   * @param documentFrequency
+   * @param postings
+   * @return
+   */
+  def apply(collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting],defaultScore:Double):InvertedList = {
+    new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings,defaultScore)
   }
 
-
+  /**
+   * A apply factory for Boolean, so default score is zero
+   * @param invertedFile
+   * @param ranked
+   * @return
+   */
   def apply(invertedFile: File, ranked: Boolean = true): InvertedList = {
     if (invertedFile.exists()) {
       val lines = Source.fromFile(invertedFile).getLines().toList
@@ -70,10 +86,10 @@ object InvertedList extends Logging {
 
       val postings = tempPostings.toList
 
-      new InvertedList(term, stem, collectionFrequency, totalTermCount, postings.length, postings)
+      new InvertedList(term, stem, collectionFrequency, totalTermCount, postings.length, postings,0)
     } else {
       log.error("This inverted list is not found: " + invertedFile.getCanonicalPath)
-      new InvertedList("", "", 0, 0, 0, List[Posting]())
+      new InvertedList("", "", 0, 0, 0, List[Posting](),0)
     }
   }
 
@@ -85,7 +101,10 @@ object InvertedList extends Logging {
    * @param scorer
    * @return
    */
-  def apply(invertedFile: File, scorer:(Int,Int,Int,Int)=>Double): InvertedList = {
+  def apply(invertedFile: File, scorer:(Int,Int,Int,Int)=>Double, config: Configuration): InvertedList = {
+     val averageDocumentSize = config.getInt("yairs.document.average.size")
+    val vocabularySize = config.getInt("yairs.vocabulary.size").toDouble
+
     if (invertedFile.exists()) {
       val lines = Source.fromFile(invertedFile).getLines().toList
       val (term, stem, collectionFrequency, totalTermCount, documentFreq) = {
@@ -114,10 +133,12 @@ object InvertedList extends Logging {
 
       val postings = tempPostings.toList
 
-      new InvertedList(term, stem, collectionFrequency, totalTermCount, documentFreq, postings)
+      //default score by set term frequency to 0, document length as average document size
+      val defaultScore = scorer(collectionFrequency, documentFreq, 0, averageDocumentSize)
+      new InvertedList(term, stem, collectionFrequency, totalTermCount, documentFreq, postings,defaultScore)
     } else {
       log.error("This inverted list is not found: " + invertedFile.getCanonicalPath)
-      new InvertedList("", "", 0, 0, 0, List[Posting]())
+      new InvertedList("", "", 0, 0, 0, List[Posting](),0)
     }
   }
 

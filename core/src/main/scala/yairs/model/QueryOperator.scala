@@ -9,5 +9,5 @@ package yairs.model
  */
 object QueryOperator extends Enumeration {
   type QueryOperator = Value
-  val OR, AND, NEAR, SUM, UW = Value
+  val OR, AND, NEAR, SUM, UW, WEIGHT= Value
 }

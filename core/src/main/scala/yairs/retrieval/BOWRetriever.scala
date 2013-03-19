@@ -28,7 +28,6 @@ trait BOWRetriever extends Retriever {
       val invertedList = getInvertedFile(node)
       invertedList.postings.foreach(posting => {
         val docId = posting.docId
-        //val score = termScorer(invertedList.collectionFrequency,invertedList.totalTermCount,invertedList.documentFrequency,posting.tf,posting.docLength)
         if (documentScores.contains(docId)) {
           documentScores(docId) += posting.score
         } else {

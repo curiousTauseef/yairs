@@ -1,6 +1,6 @@
 package yairs.util
 
-import yairs.model.{QueryField, QueryTreeNode}
+import yairs.model.{QueryOperator, QueryField, QueryTreeNode}
 import org.eintr.loglady.Logging
 import collection.mutable
 import io.Source
@@ -23,17 +23,25 @@ class PrefixQueryParser(config:Configuration) extends QueryParser with Logging {
   def isStop(word: String) = stopWordDict.contains(word.trim)
 
   def parseQueryString(rawStr: String): QueryTreeNode = {
-    val str = rawStr.trim
-    if (str.startsWith("#OR")) {
-      new QueryTreeNode("#OR", stripOuterBrackets(str.stripPrefix("#OR")),defaultField, this)
-    } else if (str.startsWith("#AND")) {
-      new QueryTreeNode("#AND", stripOuterBrackets(str.stripPrefix("#AND")),defaultField, this)
-    } else if (str.startsWith("#NEAR")) {
-      val reg = """^(#NEAR/\d+)(.*)""".r
+    val str = rawStr.trim.toLowerCase()
+    if (str.startsWith("#or")) {
+      new QueryTreeNode(QueryOperator.OR,0, stripOuterBrackets(str.stripPrefix("#or")),defaultField, this)
+    } else if (str.startsWith("#and")) {
+      new QueryTreeNode(QueryOperator.AND,0, stripOuterBrackets(str.stripPrefix("#and")),defaultField, this)
+    } else if (str.startsWith("#near")) {
+      val reg = """^(#near/\d+)(.*)""".r
       val reg(prefix, suffix) = str
-      new QueryTreeNode(prefix, stripOuterBrackets(suffix),defaultField, this)
-    } else {
-      new QueryTreeNode(defaultOperator, stripOuterBrackets(str),defaultField, this)
+      new QueryTreeNode(QueryOperator.NEAR,prefix.split("/")(1).toInt, stripOuterBrackets(suffix),defaultField, this)
+    } else if (str.startsWith("#sum")){
+      new QueryTreeNode(QueryOperator.SUM,0,stripOuterBrackets(str.stripPrefix("#sum")),defaultField,this)
+    } else if (str.startsWith("#weight")){
+      new QueryTreeNode(QueryOperator.WEIGHT,0,stripOuterBrackets(str.stripPrefix("#weight")),defaultField,this)
+    } else if (str.startsWith("#uw")){
+      val reg = """^(#uw/\d+)(.*)""".r
+      val reg(prefix, suffix) = str
+      new QueryTreeNode(QueryOperator.UW,prefix.split("/")(1).toInt, stripOuterBrackets(suffix),defaultField, this)
+    }else {
+      new QueryTreeNode(defaultOperator,0, stripOuterBrackets(str),defaultField, this)
     }
   }
 

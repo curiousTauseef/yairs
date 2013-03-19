@@ -30,7 +30,7 @@ class BM25Retriever(config: Configuration) extends BOWRetriever with Logging {
 
   def getInvertedFile(node: QueryTreeNode,scorer :(Int,Int,Int,Int)=>Double) = {
     log.debug("Getting inverted file for [%s]".format(node.term))
-    InvertedList(FileUtils.getInvertedFile(invBaseName: String, node.term, node.field, node.defaultField, isHw2 = true),scorer)
+    InvertedList(FileUtils.getInvertedFile(invBaseName: String, node.term, node.field, node.defaultField, isHw2 = true),scorer,config)
   }
 
   protected def termScorer(collectionFrequency:Int,documentFreq:Int,termFrequency:Int,documentLength:Int):Double = {

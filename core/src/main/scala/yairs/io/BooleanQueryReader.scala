@@ -73,6 +73,17 @@ object BooleanQueryReader extends Logging{
 
     val query11 = qr.getQuery("12","er #NEAR/2 (tv show)")
     query11.dump()
+
+    val query12 = qr.getQuery("13","#WEIGHT(0.5 texas 0.4 hotel 0.1 convention )")
+    query12.dump()
+
+    val query13 = qr.getQuery("14", "#UW/2( border texas )")
+    query13.dump()
+
+    val query14 = qr.getQuery("15", "#AND( #NEAR/2( south africa ) fish )")
+    query14.dump()
+
+    val query15 = qr.getQuery("16", "#UW/2( border texas )")
   }
 
   def testQueries(qr:BooleanQueryReader){

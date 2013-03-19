@@ -4,7 +4,7 @@ import java.io.{FileNotFoundException, FileOutputStream, FileInputStream, File}
 import java.util.Properties
 import org.eintr.loglady.Logging
 import yairs.exceptions.ConfigurationException
-import yairs.model.QueryField
+import yairs.model.{QueryOperator, QueryField}
 
 /**
  * Created with IntelliJ IDEA.
@@ -68,17 +68,21 @@ class Configuration (val configFile:File) extends Logging {
       value
     }
 
-    def getDefaultOperator(key:String):String = {
+    def getDefaultOperator(key:String):QueryOperator.Value = {
       val legalDefaultOperator = Set("#AND","#OR","#SUM")
 
       val operator = get(key)
 
-      if (!legalDefaultOperator.contains(operator)) {
+      if (operator == "#AND")
+        QueryOperator.AND
+      else if (operator == "#OR")
+        QueryOperator.OR
+      else if (operator == "#SUM")
+        QueryOperator.SUM
+      else {
         log.error("The key [%s] can only take the following values:\n%s".format(key,legalDefaultOperator.mkString("\t")))
         throw new ConfigurationException("")
       }
-
-      operator
     }
 
 }

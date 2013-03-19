@@ -9,30 +9,34 @@ import org.eintr.loglady.Logging
  * Date: 2/20/13
  * Time: 10:36 AM
  */
-class QueryTreeNode(val queryOperator: String, subQuery: String, val defaultField: String ,queryPaser: PrefixQueryParser) extends Logging {
+class QueryTreeNode(val operator: QueryOperator.Value, val operatorOverHead: Int, subQuery: String, val defaultField: String, queryPaser: PrefixQueryParser) extends Logging {
   private val queryString = subQuery.trim
 
-  val operator = if (queryOperator == "#AND") QueryOperator.AND
-  else if (queryOperator.startsWith("#NEAR")) QueryOperator.NEAR
-  else if (queryOperator == "#OR") QueryOperator.OR
-  else if (queryOperator == "#SUM") QueryOperator.SUM
-  else throw new IllegalArgumentException("Cannot recognize query operator")
+  val proximity = if (operator == QueryOperator.NEAR || operator == QueryOperator.UW) operatorOverHead else 1
 
-  val proximity = if (operator == QueryOperator.NEAR) queryOperator.split("/")(1).toInt else 1
-
-  private val subStringParts = queryPaser.split(queryString).filterNot(token => containsNoLetter(token))
+  val (isLeaf, children, weights) =
+    if (operator == QueryOperator.WEIGHT) {
+      val subStringParts = queryPaser.split(queryString).filter(token => containsNoLetter(token)).grouped(2).toList
+      val unNormalizedWeights = subStringParts.map(group => group(0).toDouble)
+      val weightSum = unNormalizedWeights.sum
+      val weights = unNormalizedWeights.map(weight => weight/weightSum).toList
+      val children = subStringParts.map(group => queryPaser.parseQueryString(group(1))).toList
+      (false,children,weights)
+    } else {
+      val subStringParts = queryPaser.split(queryString).filter(token => containsNoLetter(token))
+      val isLeaf = subStringParts.length == 1
+      val children = if (isLeaf) null else subStringParts.map(part => queryPaser.parseQueryString(part))
+      (isLeaf,children,null)
+    }
 
   def containsNoLetter(str: String): Boolean = {
     str.foreach(ch => {
-      if (ch.isLetter) return false
+      if (ch.isLetterOrDigit)
+        false
     })
     true
   }
 
-  //the lower fields only make sense when it is a leaf
-  val isLeaf = subStringParts.length == 1
-
-  val children = if (isLeaf) null else subStringParts.map(part => queryPaser.parseQueryString(part))
 
   val (term, field) = if (isLeaf) {
     val parts = queryString.split('+')
@@ -52,7 +56,13 @@ class QueryTreeNode(val queryOperator: String, subQuery: String, val defaultFiel
 
   def dump() {
     if (!isLeaf) {
-      if (operator == QueryOperator.NEAR) println(operator + " " + proximity) else println(operator)
+      if (operator == QueryOperator.NEAR || operator == QueryOperator.UW) println(operator + " " + proximity)
+      else if (operator == QueryOperator.WEIGHT) {
+        print(operator+ "\t")
+        weights.foreach(weight => print(weight + " "))
+        println()
+      }
+      else println(operator)
     } else println(term + " : [" + field + "] " + " stopword : " + isStop)
   }
 }

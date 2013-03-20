@@ -2,7 +2,7 @@ package yairs.retrieval
 
 import yairs.model._
 import org.eintr.loglady.Logging
-import yairs.util.{MultimergeSturcturedRetriever, FileUtils, Configuration}
+import yairs.util.{FileUtils, Configuration}
 import scala._
 import collection.mutable
 import yairs.io.BooleanQueryReader

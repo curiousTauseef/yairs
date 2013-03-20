@@ -4,6 +4,7 @@ import yairs.model.{InvertedList, Posting, QueryTreeNode}
 import collection.mutable
 import yairs.util.Configuration
 import collection.mutable.ListBuffer
+import yairs.retrieval.StructuredRetriever
 
 /**
  * Created with IntelliJ IDEA.

@@ -1,7 +1,7 @@
 package yairs.retrieval
 
 import yairs.model._
-import yairs.util.{Configuration, FileUtils}
+import yairs.util.{MultimergeSturcturedRetriever, Configuration, FileUtils}
 import collection.mutable.ListBuffer
 import util.control.Breaks._
 import org.eintr.loglady.Logging

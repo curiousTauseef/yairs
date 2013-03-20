@@ -13,6 +13,10 @@ import yairs.model.TrecLikeResult
  * Date: 3/17/13
  * Time: 4:45 PM
  */
+
+/**
+ * Just a simple runner that call different functions based on the property file
+ */
 object RetrieverRunner extends Logging {
   def main(args: Array[String]) {
     if (args.length == 0) {

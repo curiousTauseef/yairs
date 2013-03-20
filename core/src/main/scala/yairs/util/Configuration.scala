@@ -53,7 +53,7 @@ class Configuration (val configFile:File) extends Logging {
     }
 
     def getBoolean(key:String) :Boolean = {
-      val value = get(key)
+      val value = getOrElse(key,"true")
       value == "true"
     }
 
@@ -65,6 +65,17 @@ class Configuration (val configFile:File) extends Logging {
           case e: NumberFormatException => -1
           throw new ConfigurationException("The property value is not Int")
         }
+      value
+    }
+
+    def getDouble(key :String):Double = {
+      val value =
+      try{
+        get(key).toDouble
+      } catch{
+        case e: NumberFormatException => -0.0
+        throw new ConfigurationException("The property value is not Double")
+      }
       value
     }
 

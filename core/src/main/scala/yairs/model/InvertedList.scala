@@ -58,6 +58,23 @@ object InvertedList extends Logging {
     new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings,defaultScore)
   }
 
+
+  /**
+   * This apply method is used to create a new "vitural term" on the run
+   * For example, in NEAR or UW.
+   * @param collectionFrequency
+   * @param totalTermCount
+   * @param documentFrequency
+   * @param postings
+   * @param scorer
+   * @param config
+   * @return
+   */
+  def apply(collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting],scorer:(Int,Int,Int,Int)=>Double,config:Configuration):InvertedList = {
+    val averageDocumentSize = config.getInt("yairs.document.average.size")
+    new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings,scorer(collectionFrequency, documentFrequency, 0, averageDocumentSize))
+  }
+
   /**
    * A apply factory for Boolean, so default score is zero
    * @param invertedFile

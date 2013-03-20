@@ -44,6 +44,7 @@ class IndriRetriever(config: Configuration) extends MultimergeSturcturedRetrieve
        collectionFrequency / totalWordCount
     else
       documentFreq/documentCount
+
     val weight = lambda * (termFrequency + mu * collectionPrior) / (documentLength + mu) + (1 - lambda) * collectionPrior
 
     math.log10(weight)

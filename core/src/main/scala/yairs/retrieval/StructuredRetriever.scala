@@ -204,7 +204,6 @@ trait StructuredRetriever extends Retriever {
             }
           } else {
             if (!iter2.hasNext)  {
-              log.debug("Break when %s and %s".format(pp1,pp2))
               break()
             }
             pp2 = iter2.next()

@@ -21,7 +21,7 @@ trait StructuredRetriever extends Retriever {
    * @param config The configuration of the system
    * @return  Resulting InvertedList (with scores)
    */
-  protected def evaluateQuery(node: QueryTreeNode, config:Configuration): InvertedList = {
+  protected def evaluateQuery(node: QueryTreeNode, config: Configuration): InvertedList = {
     if (node.isLeaf) {
       getInvertedFile(node)
     }
@@ -30,11 +30,11 @@ trait StructuredRetriever extends Retriever {
         if (child.isStop)
           lists
         else
-          evaluateQuery(child,config) :: lists
+          evaluateQuery(child, config) :: lists
       }).reverse //ensure evaluation sequences
       val optimizedChildLists = if (node.operator == QueryOperator.AND) childLists.sortBy(l => l.postings.length) else childLists
       //mergePostingLists(optimizedChildLists, node)
-      mergeNodes(optimizedChildLists, node,config)
+      mergeNodes(optimizedChildLists, node, config)
     }
   }
 
@@ -45,11 +45,11 @@ trait StructuredRetriever extends Retriever {
    * @param config The configuration of the system
    * @return  Resulting InvertedList (with scores)
    */
-  def mergeNodes(invertedLists: List[InvertedList], node: QueryTreeNode,config:Configuration): InvertedList = {
+  def mergeNodes(invertedLists: List[InvertedList], node: QueryTreeNode, config: Configuration): InvertedList = {
     if (node.isLeaf) throw new IllegalArgumentException("No intersection to do on leaf node")
-    if (node.operator == QueryOperator.OR){
+    if (node.operator == QueryOperator.OR) {
       or(invertedLists)
-    }else if (node.operator == QueryOperator.AND || node.operator == QueryOperator.SUM) {
+    } else if (node.operator == QueryOperator.AND || node.operator == QueryOperator.SUM) {
       and(invertedLists)
     } else if (node.operator == QueryOperator.NEAR) {
       var isFirst = true //basically avoid empty list to enter conjunction operation
@@ -59,13 +59,13 @@ trait StructuredRetriever extends Retriever {
           currentList
         }
         else {
-          near(mergingList, currentList, node.proximity,config)
+          near(mergingList, currentList, node.proximity, config)
         }
       })
     } else if (node.operator == QueryOperator.WEIGHT) {
       weight(invertedLists, node.weights)
     } else if (node.operator == QueryOperator.UW) {
-      unorderedWindow(invertedLists, node.proximity,termScorer, config)
+      unorderedWindow(invertedLists, node.proximity, termScorer, config)
     } else {
       throw new IllegalArgumentException("The operator [%s] is not supported".format(node.operator))
       null
@@ -77,14 +77,14 @@ trait StructuredRetriever extends Retriever {
    * @param invertedLists Inverted lists to be merged by OR
    * @return Resulting InvertedList (with scores)
    */
-  protected def or(invertedLists:List[InvertedList]):InvertedList
+  protected def or(invertedLists: List[InvertedList]): InvertedList
 
   /**
    * Sub classes need to implement this
    * @param invertedLists Inverted lists to be merged by AND
    * @return Resulting InvertedList (with scores)
    */
-  protected def and(invertedLists:List[InvertedList]):InvertedList
+  protected def and(invertedLists: List[InvertedList]): InvertedList
 
   /**
    * Leave this unimpelementd. Subclasses could implement this
@@ -92,7 +92,7 @@ trait StructuredRetriever extends Retriever {
    * @param weights weights of of each list
    * @return Resulting Inverted list(with score)
    */
-  protected def weight(invertedLists:List[InvertedList], weights:List[Double]):InvertedList
+  protected def weight(invertedLists: List[InvertedList], weights: List[Double]): InvertedList
 
 
   /**
@@ -104,7 +104,7 @@ trait StructuredRetriever extends Retriever {
    * @param config The configuration of the system
    * @return
    */
-  protected def unorderedWindow(invertedLists:List[InvertedList], k:Int, scorer:(Int,Int,Int,Int)=>Double, config:Configuration):InvertedList
+  protected def unorderedWindow(invertedLists: List[InvertedList], k: Int, scorer: (Int, Int, Int, Int) => Double, config: Configuration): InvertedList
 
 
   /**
@@ -117,7 +117,7 @@ trait StructuredRetriever extends Retriever {
    * @param config
    * @return
    */
-  protected def near(list1:InvertedList,list2:InvertedList,k:Int, config:Configuration):InvertedList = {
+  protected def near(list1: InvertedList, list2: InvertedList, k: Int, config: Configuration): InvertedList = {
     val iter1 = list1.postings.iterator
     val iter2 = list2.postings.iterator
 
@@ -141,7 +141,7 @@ trait StructuredRetriever extends Retriever {
             if (matches > 0) {
               collectionFreq += matches
               documentFreq += 1
-              intersectedPostings.append(new Posting(docId1, matches,p1.docLength,nearMatchesList.map(_._2),0))
+              intersectedPostings.append(new Posting(docId1, matches, p1.docLength, nearMatchesList.map(_._2), 0))
             }
             if (!(iter1.hasNext && iter2.hasNext)) {
               break()
@@ -159,12 +159,12 @@ trait StructuredRetriever extends Retriever {
       }
     }
 
-    val scoredPostings = intersectedPostings.map(posting =>{
-      val score = termScorer(collectionFreq,documentFreq,posting.tf,posting.docLength)
-      new Posting(posting.docId,posting.tf,posting.docLength,posting.positions,score)
+    val scoredPostings = intersectedPostings.map(posting => {
+      val score = termScorer(collectionFreq, documentFreq, posting.tf, posting.docLength)
+      new Posting(posting.docId, posting.tf, posting.docLength, posting.positions, score)
     }).toList
 
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, scoredPostings, termScorer,config)
+    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, scoredPostings, termScorer, config)
   }
 
   /**
@@ -187,22 +187,26 @@ trait StructuredRetriever extends Retriever {
         while (true) {
           if (pp2 >= pp1) {
             if (pp2 - pp1 <= k) {
+              //we got a match!
               results.append((pp1, pp2))
+              //This is the implementation that forward all the points, as discussed in email discussion
+              if (!(iter1.hasNext && iter2.hasNext)) {
+                break()
+              }
+              pp1 = iter1.next()
+              pp2 = iter2.next()
+            } else{
+              //forward smaller pointer when no matches
+              if (!iter1.hasNext) {
+                break()
+              }
+              pp1 = iter1.next()
             }
-            //This is the implementation that forward all the points, as discussed in email discussion
-            if (!(iter1.hasNext && iter2.hasNext)) {
+          } else {
+            if (!iter2.hasNext)  {
+              log.debug("Break when %s and %s".format(pp1,pp2))
               break()
             }
-            pp1 = iter1.next()
-            pp2 = iter2.next()
-            //This is the implementation that forward the smaller points, which conform with the sample result given in HW1, but not correct according to email discussions
-            //            if (!iter1.hasNext) {
-            //              break()
-            //            }
-            //            pp1 = iter1.next()
-
-          } else {
-            if (!iter2.hasNext) break()
             pp2 = iter2.next()
           }
         }

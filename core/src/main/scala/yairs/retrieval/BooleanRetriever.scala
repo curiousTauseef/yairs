@@ -1,10 +1,11 @@
 package yairs.retrieval
 
 import yairs.model._
-import yairs.util.{Configuration, FileUtils}
+import yairs.util.{Configuration}
 import org.eintr.loglady.Logging
 import scala.util.control.Breaks._
 import collection.mutable.ListBuffer
+import yairs.io.FileUtils
 
 /**
  * Created with IntelliJ IDEA.
@@ -18,19 +19,20 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
 
   val invBaseName = config.get("yairs.inv.basename")
   val isRanked = config.getBoolean("yairs.ranked")
+  val isHw2 = config.getBoolean("yairs.hw2")
 
-  /**
-   * A concrete implementation of the method, will determine whether to
-   * @param query
-   * @param runId
-   * @return
-   */
-  def getResults(query: Query, runId: String) = {
-    evaluate(query, runId, config)
-  }
+//  /**
+//   * A concrete implementation of the method, will determine whether to
+//   * @param query
+//   * @param runId
+//   * @return
+//   */
+//  def getResults(query: Query, runId: String) = {
+//    evaluate(query, runId, config)
+//  }
 
   protected def getInvertedFile(leaf: QueryTreeNode, scorer: (Int, Int, Int, Int) => Double): InvertedList = {
-    InvertedList(FileUtils.getInvertedFile(invBaseName: String, leaf.term, leaf.field, leaf.defaultField, isHw2 = true), isRanked)
+    InvertedList(FileUtils.getInvertedFile(invBaseName: String, leaf.term, leaf.field, leaf.defaultField, isHw2), isRanked)
   }
 
   protected def termScorer(collectionFrequency: Int, documentFreq: Int, termFrequency: Int, documentLength: Int): Double = termFrequency
@@ -101,7 +103,7 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
             documentFreq += 1
             //Is this right?
             collectionFreq += math.max(list1.collectionFrequency, list2.collectionFrequency)
-            intersectedPostings.append(Posting(docId1, disjunctMatchScore(p1.score, p2.score)))
+            intersectedPostings.append(Posting(docId1, math.max(p1.score, p2.score)))
             if (!(iter1.hasNext && iter2.hasNext)) {
               break()
             }
@@ -139,8 +141,6 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
     InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
 
-  protected def disjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.max(p1Score, p2Score)
-
   /**
    * AND operation for 2 postings lists intersection
    * @param list1
@@ -166,7 +166,7 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
           val docId2 = p2.docId
 
           if (docId1 == docId2) {
-            intersectedPostings.append(Posting(docId1, conjunctMatchScore(p1.score, p2.score)))
+            intersectedPostings.append(Posting(docId1, math.min(p1.score, p2.score)))
             documentFreq += 1
             collectionFreq += math.min(list1.collectionFrequency, list2.collectionFrequency)
             if (!(iter1.hasNext && iter2.hasNext)) {
@@ -186,8 +186,6 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
     }
     InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
-
-  protected def conjunctMatchScore(p1Score: Double, p2Score: Double): Double = math.min(p1Score, p2Score)
 
   /**
    * Boolean does not support WEIGHT

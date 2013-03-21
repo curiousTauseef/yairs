@@ -1,11 +1,8 @@
 package yairs.retrieval
 
 import yairs.model.{InvertedList, Posting, QueryTreeNode}
-import collection.mutable
 import yairs.util.Configuration
 import collection.mutable.ListBuffer
-import yairs.retrieval.StructuredRetriever
-
 /**
  * Created with IntelliJ IDEA.
  * User: Hector, Zhengzhong Liu
@@ -211,7 +208,7 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
   }
 
   /**
-   * Unorder window constrain for 3 words
+   * Unorder window constrain for multiple words
    * @param locations
    * @param k
    * @return
@@ -220,7 +217,10 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
     val minLocation = locations.reduceLeft((l, r) => if (r < l) r else l)
     val maxLocation = locations.reduceLeft((l, r) => if (r > l) r else l)
 
-    if (maxLocation + 1 - minLocation > k) false else true
+    //if (maxLocation + 1 - minLocation > k) false else true
+
+    //Unorder window
+    if (maxLocation - minLocation > k) false else true
   }
 
   /**

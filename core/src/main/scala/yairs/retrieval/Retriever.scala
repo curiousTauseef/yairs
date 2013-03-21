@@ -1,7 +1,7 @@
 package yairs.retrieval
 
 import yairs.model._
-import yairs.util.{Configuration, FileUtils}
+import yairs.util.{Configuration}
 import org.eintr.loglady.Logging
 
 /**
@@ -21,7 +21,9 @@ trait Retriever extends Logging{
    * @param runId
    * @return
    */
-  def getResults(query:Query,runId:String) : List[Result]
+  def getResults(query:Query,runId:String, config:Configuration) : List[Result]  = {
+    evaluate(query, runId, config)
+  }
 
   protected def evaluate(query: Query, runId:String, config:Configuration): List[Result] = {
     val isRanked = config.getBoolean("yairs.ranked")
@@ -30,7 +32,11 @@ trait Retriever extends Logging{
     log.debug("Evaluating query:")
     query.dump()
 
-    val evalResults = if (!isRanked) evaluateQuery(root, config).postings.sortBy(posting => posting.docId) else evaluateQuery(root, config).postings.sortBy(posting => posting.score).reverse
+    val unSortedResults = evaluateQuery(root, config).postings.sortBy(posting => -posting.docId)
+
+    val evalResults = if (!isRanked) unSortedResults else unSortedResults.sortBy(posting => -posting.score)
+
+    //val evalResults = if (!isRanked) evaluateQuery(root, config).postings.sortBy(posting => posting.docId) else evaluateQuery(root, config).postings.sortBy(posting => posting.score).reverse
 
     evalResults.zipWithIndex.foldLeft(List[Result]()) {
       case (results, (posting, zeroBasedRank)) => {

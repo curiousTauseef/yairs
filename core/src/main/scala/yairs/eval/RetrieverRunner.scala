@@ -47,7 +47,7 @@ object RetrieverRunner extends Logging {
     val runId = config.get("yairs.run.id")
     val numResults = config.getInt("yairs.run.results.num")
 
-    testQuerySet(queryFileName, outputDir, queryReader,retriever, runId, numResults)
+    testQuerySet(queryFileName, outputDir, queryReader,retriever, runId, numResults,config)
 
     log.info("Execution time for [%s] : [%s] s".format(retrieverName,(System.nanoTime - start) / 1e9))
   }
@@ -61,13 +61,13 @@ object RetrieverRunner extends Logging {
    * @param runId A String used as a run ID
    * @param numResultsToOutput  Number of results to output
    */
-  def testQuerySet(queryFilePath: String, outputDirectory: String, qr: QueryReader, br: Retriever, runId: String, numResultsToOutput: Int) {
+  def testQuerySet(queryFilePath: String, outputDirectory: String, qr: QueryReader, br: Retriever, runId: String, numResultsToOutput: Int,config:Configuration) {
     val queries = qr.getQueries(new File(queryFilePath))
     val writer = new PrintWriter(new File(outputDirectory + "/%s".format(runId)))
     writer.write(TrecLikeResult.header + "\n")
 
     queries.foreach(query => {
-      val results = br.getResults(query, runId)
+      val results = br.getResults(query, runId,config)
       val resultsToOutput = if (numResultsToOutput > 0) results.take(numResultsToOutput) else results
       log.debug("Number of documents retrieved: " + results.length)
       if (results.length == 0) {
@@ -92,8 +92,8 @@ object RetrieverRunner extends Logging {
    * @param queryString Query to be run
    * @param k top k results returned
    */
-  def testQuery(outputDirectory: String, qr: QueryReader, br: Retriever, queryId: String, queryString: String, k: Int) {
-    val results = br.getResults(qr.getQuery(queryId, queryString), "run" + queryId)
+  def testQuery(outputDirectory: String, qr: QueryReader, br: Retriever, queryId: String, queryString: String, k: Int,config:Configuration) {
+    val results = br.getResults(qr.getQuery(queryId, queryString), "run" + queryId,config)
     val writer = new PrintWriter(new File(outputDirectory + "/%s.txt".format("run" + queryId)))
     writer.write(TrecLikeResult.header + "\n")
 
@@ -118,7 +118,7 @@ object RetrieverRunner extends Logging {
 
     val qr = new BooleanQueryReader(config)
     val br = new BooleanRetriever(config)
-    testQuerySet(queryFileName, outputDir, qr, br, runId, numResults)
+    testQuerySet(queryFileName, outputDir, qr, br, runId, numResults,config)
 
     //***uncomment the following queries to see individual queries
     //***they are also used to generate the sample queries
@@ -137,7 +137,7 @@ object RetrieverRunner extends Logging {
 
     val qr = new BooleanQueryReader(config)
     val br = new BM25Retriever(config)
-    testQuerySet(queryFileName, outputDir, qr, br, runId, numResults)
+    testQuerySet(queryFileName, outputDir, qr, br, runId, numResults,config)
 
   }
 }

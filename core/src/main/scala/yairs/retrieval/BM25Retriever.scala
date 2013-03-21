@@ -2,10 +2,10 @@ package yairs.retrieval
 
 import yairs.model._
 import org.eintr.loglady.Logging
-import yairs.util.{FileUtils, Configuration}
+import yairs.util.{Configuration}
 import scala._
 import collection.mutable
-import yairs.io.BooleanQueryReader
+import yairs.io.{FileUtils, BooleanQueryReader}
 import java.io.{PrintWriter, File}
 
 /**
@@ -20,15 +20,15 @@ class BM25Retriever(config: Configuration) extends MultimergeSturcturedRetriever
   private val documentCount = config.getInt("yairs.document.count").toDouble
   private val averageDocumentSize = config.getInt("yairs.document.average.size").toDouble
 
-  /**
-   *
-   * @param query
-   * @param runId
-   * @return
-   */
-  def getResults(query: Query, runId: String) = {
-    evaluate(query,runId,config)
-  }
+//  /**
+//   *
+//   * @param query
+//   * @param runId
+//   * @return
+//   */
+//  def getResults(query: Query, runId: String) = {
+//    evaluate(query,runId,config)
+//  }
 
   /**
    * Inverted list getting method for BM25

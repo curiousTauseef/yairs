@@ -1,10 +1,11 @@
 package yairs.retrieval
 
 import yairs.model._
-import yairs.util.{Configuration, FileUtils}
+import yairs.util.{Configuration}
 import collection.mutable.ListBuffer
 import util.control.Breaks._
 import org.eintr.loglady.Logging
+import yairs.io.FileUtils
 
 /**
  * Created with IntelliJ IDEA.
@@ -19,15 +20,15 @@ class IndriRetriever(config: Configuration) extends MultimergeSturcturedRetrieve
   private val documentCount = config.getInt("yairs.document.count").toDouble
   private val totalWordCount = config.getInt("yairs.word.count").toDouble
 
-  /**
-   * Wrapper to get the results
-   * @param query
-   * @param runId
-   * @return
-   */
-  def getResults(query: Query, runId: String): List[Result] = {
-    evaluate(query, runId,config)
-  }
+//  /**
+//   * Wrapper to get the results
+//   * @param query
+//   * @param runId
+//   * @return
+//   */
+//  def getResults(query: Query, runId: String): List[Result] = {
+//    evaluate(query, runId,config)
+//  }
 
   protected def getInvertedFile(node: QueryTreeNode, scorer: (Int, Int, Int, Int) => Double = termScorer): InvertedList = {
     log.debug("Getting inverted file for [%s]".format(node.term))

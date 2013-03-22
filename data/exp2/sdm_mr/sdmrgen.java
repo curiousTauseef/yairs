@@ -10,7 +10,7 @@ public class sdmrgen {
 	//weight for different representation
 	static double[] b = new double[] {0,	0,	0,	1};
 	//weight for different part in sd
-	static double w1 = 0.8, w2 = 0.1, w3 = 0.1;
+	static double w1 = 1, w2 = 0, w3 = 0;
 
     static String fieldSplitter = "+";
 
@@ -18,7 +18,7 @@ public class sdmrgen {
     public static void main(String[] args) throws Exception{
 		// TODO Auto-generated method stub
 		BufferedReader inf = new BufferedReader(new FileReader("queries.txt"));
-		FileWriter outf =new FileWriter("sdmr_body_only.txt");
+		FileWriter outf =new FileWriter("sdmr_best_comb.txt");
 		String line;
 		while ( (line=inf.readLine()) != null ){
 			String[] tmp = line.split("\\(");

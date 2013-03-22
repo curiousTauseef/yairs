@@ -29,9 +29,9 @@ trait Retriever extends Logging{
     val isRanked = config.getBoolean("yairs.ranked")
 
     val root = query.queryRoot
-    log.debug("Evaluating query:")
+    log.debug("Evaluating query: "+query.queryId)
 //    query.dump()
-      query.dumpFlat()
+//      query.dumpFlat()
 
     val unSortedResults = evaluateQuery(root, config).postings.sortBy(posting => -posting.docId)
 

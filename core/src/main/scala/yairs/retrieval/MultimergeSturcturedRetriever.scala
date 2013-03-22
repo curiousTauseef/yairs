@@ -35,13 +35,13 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
     val intersectedPostings = new ListBuffer[Posting]()
 
     val pointers = iters.map(iter => if (iter.hasNext) iter.next() else null)
-
     //the default score for AND is to apply and on all the query terms
     //in this case, we sum them up because it is logged
     //we also consider weight, for normal AND, weight will be 1
     val weightedDefaultScores = invertedLists.map(list => list.defaultScore).zip(weights).map {
       case (dScore, w) => dScore * w
     }
+
     val combinedDefaultScores = weightedDefaultScores.foldLeft(0.0)((comb, ws) => comb + ws)
 
     while (somePointerNotNull(pointers)) {
@@ -79,9 +79,11 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
       sum + list.collectionFrequency
     })
 
+    //log.debug(weights.mkString(" ") )
+    //invertedLists.foreach(list=>list.postings.foreach(p=>log.debug(p.score.toString)))
     //We use the total document frequency amongst the inverted list as the document frequency
     //We use the total collection frequency amongst the inverted lists as the collection frequency
-    InvertedList(invertedLists.map(list=>list.term).mkString("&"),totalCollectionFreq, invertedLists(0).totalTermCount, documentFreq, intersectedPostings.toList, combinedDefaultScores)
+    InvertedList(invertedLists.map(list=>list.term).mkString("&")+"_merged",totalCollectionFreq, invertedLists(0).totalTermCount, documentFreq, intersectedPostings.toList, combinedDefaultScores)
   }
 
   /**
@@ -155,7 +157,11 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
       val score = termScorer(totalCollectionFreq,totalDocumentFreq,posting.tf,posting.docLength)
       new Posting(posting.docId,posting.tf,posting.docLength,posting.positions,score)
     }).toList
-    InvertedList(invertedLists.map(list=>list.term).mkString("&"),totalCollectionFreq, invertedLists(0).totalTermCount, totalDocumentFreq, scoredPostings,scorer,config)
+
+    if (totalCollectionFreq == 0)
+      InvertedList.empty()
+    else
+      InvertedList(invertedLists.map(list=>list.term).mkString("&"),totalCollectionFreq, invertedLists(0).totalTermCount, totalDocumentFreq, scoredPostings,scorer,config)
   }
 
   /**

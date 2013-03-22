@@ -48,7 +48,10 @@ class IndriRetriever(config: Configuration) extends MultimergeSturcturedRetrieve
 
     val weight = lambda * (termFrequency + mu * collectionPrior) / (documentLength + mu) + (1 - lambda) * collectionPrior
 
-    math.log10(weight)
+    if (weight == 0.0)
+       Integer.MIN_VALUE
+    else
+      math.log10(weight)
   }
 
   override protected def weight(invertedLists: List[InvertedList], weights: List[Double]): InvertedList = {

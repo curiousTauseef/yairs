@@ -118,7 +118,7 @@ sub formulate_query {
 	
 	if( $num_extracted == 1 ) { next; } # skip these, since we already took care of the term features...
 	if( $bin =~ /^0+11+[^1]*$/ ) { # words in contiguous phrase, ordered features (f_O)
-	    $queryO .= " #near/3( $extracted_terms) ";
+	    $queryO .= " #near/1( $extracted_terms) ";
 	}
 	$queryU .= " #uw/" . 3*$num_extracted . "( $extracted_terms) "; # every subset of terms, unordered features (f_U)
 	if( $type eq "sd" ) { $i *= 2; $i--; }

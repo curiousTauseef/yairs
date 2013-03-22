@@ -54,8 +54,8 @@ object InvertedList extends Logging {
    * @param postings
    * @return
    */
-  def apply(collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting],defaultScore:Double):InvertedList = {
-    new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings,defaultScore)
+  def apply(term:String,collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting],defaultScore:Double):InvertedList = {
+    new InvertedList(term,term,collectionFrequency,totalTermCount,documentFrequency,postings,defaultScore)
   }
 
 
@@ -70,7 +70,7 @@ object InvertedList extends Logging {
    * @param config
    * @return
    */
-  def apply(collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting],scorer:(Int,Int,Int,Int)=>Double,config:Configuration):InvertedList = {
+  def apply(term:String,collectionFrequency:Int, totalTermCount:Int, documentFrequency:Int, postings:List[Posting],scorer:(Int,Int,Int,Int)=>Double,config:Configuration):InvertedList = {
     val averageDocumentSize = config.getInt("yairs.document.average.size")
     new InvertedList("","",collectionFrequency,totalTermCount,documentFrequency,postings,scorer(collectionFrequency, documentFrequency, 0, averageDocumentSize))
   }

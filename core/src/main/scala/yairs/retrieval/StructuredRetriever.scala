@@ -27,13 +27,13 @@ trait StructuredRetriever extends Retriever {
     }
     else {
       val childLists = node.children.foldLeft(List[InvertedList]())((lists, child) => {
-        if (child.isStop)
+        if (child.isStop) {
           lists
-        else
+        }else
           evaluateQuery(child, config) :: lists
       }).reverse //ensure evaluation sequences
       val optimizedChildLists = if (node.operator == QueryOperator.AND) childLists.sortBy(l => l.postings.length) else childLists
-      //mergePostingLists(optimizedChildLists, node)
+
       mergeNodes(optimizedChildLists, node, config)
     }
   }
@@ -47,6 +47,9 @@ trait StructuredRetriever extends Retriever {
    */
   def mergeNodes(invertedLists: List[InvertedList], node: QueryTreeNode, config: Configuration): InvertedList = {
     if (node.isLeaf) throw new IllegalArgumentException("No intersection to do on leaf node")
+
+    if (invertedLists.length==0) return InvertedList.empty()
+
     if (node.operator == QueryOperator.OR) {
       or(invertedLists)
     } else if (node.operator == QueryOperator.AND || node.operator == QueryOperator.SUM) {
@@ -59,7 +62,7 @@ trait StructuredRetriever extends Retriever {
           currentList
         }
         else {
-          near(mergingList, currentList, node.proximity, config)
+          near(mergingList, currentList, node.proximity,termScorer,config)
         }
       })
     } else if (node.operator == QueryOperator.WEIGHT) {
@@ -117,7 +120,7 @@ trait StructuredRetriever extends Retriever {
    * @param config
    * @return
    */
-  protected def near(list1: InvertedList, list2: InvertedList, k: Int, config: Configuration): InvertedList = {
+  protected def near(list1: InvertedList, list2: InvertedList, k: Int, scorer:(Int,Int,Int,Int)=>Double,config: Configuration): InvertedList = {
     val iter1 = list1.postings.iterator
     val iter2 = list2.postings.iterator
 
@@ -164,7 +167,7 @@ trait StructuredRetriever extends Retriever {
       new Posting(posting.docId, posting.tf, posting.docLength, posting.positions, score)
     }).toList
 
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, scoredPostings, termScorer, config)
+    InvertedList(list1+"&"+list2, collectionFreq, list1.totalTermCount, documentFreq, scoredPostings, scorer, config)
   }
 
   /**

@@ -53,7 +53,6 @@ object FileUtils {
     } catch {
       case e: Exception => e.printStackTrace()
       throw new IllegalArgumentException("Cannot find InvertedList at [%s]. Maybe field [%s] is not supported".format(filePath,field))
-      System.exit(1)
       null
     }
   }

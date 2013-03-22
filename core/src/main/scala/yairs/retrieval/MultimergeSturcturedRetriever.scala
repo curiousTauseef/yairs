@@ -29,6 +29,8 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
    * @return Resulting inverted list (with score)
    */
   protected def multiwayMerge(invertedLists: List[InvertedList], weights: List[Double]): InvertedList = {
+    if (invertedLists.length==0) return InvertedList.empty()
+
     val iters = invertedLists.map(list => list.postings.iterator).toArray
     val intersectedPostings = new ListBuffer[Posting]()
 
@@ -79,7 +81,7 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
 
     //We use the total document frequency amongst the inverted list as the document frequency
     //We use the total collection frequency amongst the inverted lists as the collection frequency
-    InvertedList(totalCollectionFreq, invertedLists(0).totalTermCount, documentFreq, intersectedPostings.toList, combinedDefaultScores)
+    InvertedList(invertedLists.map(list=>list.term).mkString("&"),totalCollectionFreq, invertedLists(0).totalTermCount, documentFreq, intersectedPostings.toList, combinedDefaultScores)
   }
 
   /**
@@ -153,7 +155,7 @@ trait MultimergeSturcturedRetriever extends StructuredRetriever {
       val score = termScorer(totalCollectionFreq,totalDocumentFreq,posting.tf,posting.docLength)
       new Posting(posting.docId,posting.tf,posting.docLength,posting.positions,score)
     }).toList
-    InvertedList(totalCollectionFreq, invertedLists(0).totalTermCount, totalDocumentFreq, scoredPostings, termScorer,config)
+    InvertedList(invertedLists.map(list=>list.term).mkString("&"),totalCollectionFreq, invertedLists(0).totalTermCount, totalDocumentFreq, scoredPostings,scorer,config)
   }
 
   /**

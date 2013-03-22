@@ -31,7 +31,7 @@ class IndriRetriever(config: Configuration) extends MultimergeSturcturedRetrieve
 //  }
 
   protected def getInvertedFile(node: QueryTreeNode, scorer: (Int, Int, Int, Int) => Double = termScorer): InvertedList = {
-    log.debug("Getting inverted file for [%s]".format(node.term))
+//    log.debug("Getting inverted file for [%s]-[%s]".format(node.term,node.field))
     InvertedList(FileUtils.getInvertedFile(invBaseName: String, node.term, node.field, node.defaultField, isHw2 = true), scorer, config)
   }
 

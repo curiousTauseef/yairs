@@ -11,28 +11,40 @@ import org.eintr.loglady.Logging
  */
 class QueryTreeNode(val operator: QueryOperator.Value, val operatorOverHead: Int, subQuery: String, val defaultField: String, queryPaser: PrefixQueryParser) extends Logging {
   private val queryString = subQuery.trim
-
   val proximity = if (operator == QueryOperator.NEAR || operator == QueryOperator.UW) operatorOverHead else 1
 
   val (isLeaf, children, weights) =
     if (operator == QueryOperator.WEIGHT) {
-      val subStringParts = queryPaser.split(queryString).filter(token => containsNoLetter(token)).grouped(2).toList
+      val subStringParts = queryPaser.split(queryString).filterNot(token => containsNoLetter(token)).grouped(2).toList
       val unNormalizedWeights = subStringParts.map(group => group(0).toDouble)
       val weightSum = unNormalizedWeights.sum
-      val weights = unNormalizedWeights.map(weight => weight/weightSum).toList
+      val weights = unNormalizedWeights.map(weight => weight / weightSum).toList
       val children = subStringParts.map(group => queryPaser.parseQueryString(group(1))).toList
-      (false,children,weights)
+      (false, children, weights)
     } else {
-      val subStringParts = queryPaser.split(queryString).filter(token => containsNoLetter(token))
-      val isLeaf = subStringParts.length == 1
-      val children = if (isLeaf) null else subStringParts.map(part => queryPaser.parseQueryString(part))
-      (isLeaf,children,null)
+      val subStringParts = queryPaser.split(queryString).filterNot(token => containsNoLetter(token))
+//      log.debug("Substrings")
+//      subStringParts.foreach(s=>log.debug(s))
+//      log.debug(subStringParts.length.toString)
+
+      if (subStringParts.length == 1) {
+        if (queryString.startsWith("#")) {
+          val children = queryPaser.parseQueryString(queryString)
+          (false, List(children), null)
+        } else {
+          (true,null,null)
+        }
+      }else {
+        val children = subStringParts.map(part => queryPaser.parseQueryString(part))
+        (false, children, null)
+      }
     }
 
   def containsNoLetter(str: String): Boolean = {
     str.foreach(ch => {
-      if (ch.isLetterOrDigit)
-        false
+      if (ch.isLetterOrDigit){
+        return false
+      }
     })
     true
   }
@@ -58,7 +70,7 @@ class QueryTreeNode(val operator: QueryOperator.Value, val operatorOverHead: Int
     if (!isLeaf) {
       if (operator == QueryOperator.NEAR || operator == QueryOperator.UW) println(operator + " " + proximity)
       else if (operator == QueryOperator.WEIGHT) {
-        print(operator+ "\t")
+        print(operator + "\t")
         weights.foreach(weight => print(weight + " "))
         println()
       }

@@ -30,7 +30,8 @@ trait Retriever extends Logging{
 
     val root = query.queryRoot
     log.debug("Evaluating query:")
-    query.dump()
+//    query.dump()
+      query.dumpFlat()
 
     val unSortedResults = evaluateQuery(root, config).postings.sortBy(posting => -posting.docId)
 

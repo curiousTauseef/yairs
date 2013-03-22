@@ -11,4 +11,7 @@ trait Query {
   val queryString: String
   val queryRoot:QueryTreeNode
   def dump()
+  def dumpFlat(){
+    print(queryString)
+  }
 }

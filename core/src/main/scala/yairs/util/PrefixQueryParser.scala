@@ -46,6 +46,7 @@ class PrefixQueryParser(config:Configuration) extends QueryParser with Logging {
   }
 
   def split(subQuery: String): List[String] = {
+//    log.error(subQuery)
     val strBuffer = new StringBuilder
     val bracketStack = new mutable.Stack[Char]
 

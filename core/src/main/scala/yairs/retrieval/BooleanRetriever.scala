@@ -138,7 +138,7 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
       intersectedPostings.append(Posting(p.docId, p.score))
     }
 
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
+    InvertedList(list1.term+"&"+list2.term,collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
 
   /**
@@ -184,7 +184,7 @@ class BooleanRetriever(config: Configuration) extends StructuredRetriever with L
         }
       }
     }
-    InvertedList(collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
+    InvertedList(list1.term+"&"+list2.term,collectionFreq, list1.totalTermCount, documentFreq, intersectedPostings.toList,0)
   }
 
   /**
